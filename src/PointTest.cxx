@@ -8,6 +8,7 @@ met:
 
     Redistributions of source code must retain the above copyright
     notice, this list of conditions and the following disclaimer.
+
     Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in
     the documentation and/or other materials provided with the
@@ -29,9 +30,53 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Point.hxx"
 #include <boost/format.hpp>
 #include <iostream>
+#include <math.h>
+
+void gridLoop()
+{
+  int error_count = 0; 
+  std::string grid(6, ' ');
+  for(char la0 = 'A'; la0 <= 'R'; la0++) {
+    grid[0] = la0; 
+    for(char lo0 = 'A'; lo0 <= 'R'; lo0++) {
+      grid[1] = lo0;       
+      for(char la1 = '0'; la1 <= '9'; la1++) {
+	grid[2] = la1;       	
+	for(char lo1 = '0'; lo1 <= '9'; lo1++) {
+	  grid[3] = lo1;       		  
+	  for(char la2 = 'a'; la2 <= 'x'; la2++) {
+	    grid[4] = la2;       		  	    
+	    for(char lo2 = 'a'; lo2 <= 'x'; lo2++) {
+	      grid[5] = lo2;       		  	      
+	      GeoProf::Point tll(grid);
+	      std::string tgrid;
+	      tll.toGrid(tgrid);
+	      if(tgrid != grid) {
+		std::cerr << boost::format("grid %s => [%f %f] => grid %s.\n")
+		  % grid % tll.getLatitude() % tll.getLongitude() % tgrid;
+		error_count++; 
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+  std::cout << boost::format("%d errors in grid translation check.\n") % error_count; 
+}
+
 
 int main(int argc, char ** argv)
 {
-  GeoProf::Point a(43.5, 72.6);
+  GeoProf::Point n_ll(41.71463, -72.72713);
+  GeoProf::Point n_gr2ll("FN31pr");
+
+  double lat_err = n_gr2ll.getLatitude() - n_ll.getLatitude();
+  double lon_err = n_gr2ll.getLongitude() - n_ll.getLongitude();
+  
+  std::cout << boost::format("LatLon from grid [%f, %f] error = [%f, %f]\n")
+    % n_gr2ll.getLatitude() % n_gr2ll.getLongitude() % lat_err % lon_err; 
+
+  gridLoop();
 }
 

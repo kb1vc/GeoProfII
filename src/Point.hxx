@@ -8,6 +8,7 @@ met:
 
     Redistributions of source code must retain the above copyright
     notice, this list of conditions and the following disclaimer.
+
     Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in
     the documentation and/or other materials provided with the
@@ -28,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef POINT_HDR_DEF
 #define POINT_HDR_DEF
 #include <string>
+#include <regex>
 /**
  * \class GeoProf::Point
  *
@@ -95,6 +97,22 @@ namespace GeoProf {
     double getElevation() const { return elev; }
 
     /**
+     * @brief Return degrees latitude (negative is south of the equator)
+     * 
+     * @return latitude
+     */
+    double getLatitude() const { return lat; }
+
+    /**
+     * @brief Return degrees longitude (negative is west of the Grenwich)
+     * 
+     * @return longitude
+     */
+    double getLongitude() const { return lon; }
+    
+
+    
+    /**
      * @brief Calculate the bearing (in degrees -- 0 is north) from this point to anothe point
      * along the shorter great circle route
      *
@@ -161,13 +179,20 @@ namespace GeoProf {
      * @brief Set this point from a string describing the location in 
      * degrees-minutes-seconds of latitude and logitude. Specification is
      * in lat degrees/minutes/seconds and lon degrees/minutes/seconds as 
-     * doubles.  Negative values are South or West.
+     * doubles.  North/South/East/West 
      * 
-     * @param dms location (lat/lon) in degrees-minutes-seconds
+     * @param lat_d latitude degrees
+     * @param lat_m latitude minutes
+     * @param lat_s latitude seconds
+     * @param ns true if latitude is north of the equator
+     * @param lon_d longitude degrees
+     * @param lon_m longitude minutes
+     * @param lon_s longitude seconds
+     * @param ew true if latitude is east of Grenwich
      */
-    void fromDMS(double lat_d, double lat_m, double lat_s, 
-		 double lon_d, double lon_m, double lon_s);
-    
+    void fromDMS(double lat_d, double lat_m, double lat_s, char ns,
+		 double lon_d, double lon_m, double lon_s, char ew);
+
   private:
     /// Latitude South is negative, North is positive. 
     double lat;
@@ -177,8 +202,22 @@ namespace GeoProf {
 
     /// Elevation referenced to Clark '88 Geode in meters. 
     double elev; 
-
+    static std::regex grid_regexp; //  ("[A-R][A-R][0-9][0-9][A-X][A-X]", std::regex_constants::icase);      
+    
+    /**
+     * @brief Validate a string as a Maidenhead Grid specifier
+     *
+     * @param grid A Maidenhead Grid specifier of the form XXnnxx (capital
+     * letter pair, digit pair, letter pair)
+     * @return true if this is a properly formatted grid, false otherwise. 
+     */
     bool checkGrid(const std::string & grid);
+    
+    /**
+     * @brief Helper for translating char positions in a grid 
+     * locator into double offsets from 0 degrees.
+     */
+    double gridDiff(char v, char s, double mul); 
   }; 
 
 }
