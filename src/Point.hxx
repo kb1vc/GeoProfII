@@ -1,0 +1,185 @@
+/*
+Copyright (c) 2019 Matthew H. Reilly (kb1vc)
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+    Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+#ifndef POINT_HDR_DEF
+#define POINT_HDR_DEF
+#include <string>
+/**
+ * \class GeoProf::Point
+ *
+ * \brief Point implements navigation operations on a geographic point
+ * on the surface of the earth. The Point object includes methods to 
+ * calculate the distance and bearing from one point to another, or the
+ * location (point) at a given distance and bearing from a starting location.
+ *
+ * \author $Author: kb1vc $
+ *
+ * \date $Date: 2005/04/14 14:16:20 $
+ *
+ * Contact: kb1vc@kb1vc.org
+ *
+ */
+namespace GeoProf {
+  class Point {
+  public:      
+    /**
+     * @brief Create a point object from latitude, longitude, and elevation. 
+     * 
+     * @param _lat the latitude of the point -- negative values are south of the equator
+     * @param _lon the longitude of the point -- negative values are west of Grenwich
+     * @param _elev (optional) the altitude of the point above mean-sea-level referenced to the Clarke 1866 Geode
+     */
+    Point(double _lat = 0.0, double _lon = 0.0, double _elev = 0.0) {
+      lat = _lat;
+      lon = _lon;
+      elev = _elev; 
+    }
+
+    /**
+     * @brief Create a point object from another point object
+     *
+     * @param orig the point that we're cloning. 
+     */
+    Point(const Point & orig) {
+      lat = orig.lat;
+      lon = orig.lon;
+      elev = orig.elev; 
+    }
+
+    /**
+     * @brief Create a point from a Maidenhead Grid specifier
+     * 
+     * @param grid A Maidenhead Grid specifier of the form XXnnxx (capital
+     * letter pair, digit pair, letter pair)
+     */
+    Point(const std::string & grid) {
+      fromGrid(grid);
+    }
+
+    /**
+     * @brief Set the elevation of this point. 
+     * 
+     * @param el elevation in meters above mean seal level, referenced to the Clarke 1866 Geode
+     */
+    void setElevation(double el) { elev = el; }
+
+    /**
+     * @brief Return the elevation of this point. 
+     * 
+     * @return elevation in meters above mean seal level, referenced to the Clarke 1866 Geode
+     */
+    double getElevation() const { return elev; }
+
+    /**
+     * @brief Calculate the bearing (in degrees -- 0 is north) from this point to anothe point
+     * along the shorter great circle route
+     *
+     * @param other the other point
+     * @return bearing in degrees.
+     */
+    double bearingTo(const Point & other);
+
+    
+    /**
+     * @brief Calculate the great circle distance (in meters) from this point to anothe point
+     *
+     * @param other the other point
+     * @return great circle distance in meters
+     */
+    double distanceTo(const Point & other);
+
+    /**
+     * @brief Calculate the bearing (in degrees -- 0 is north) and distance (in meters) 
+     * from this point to anothe point
+     * along the shorter great circle route
+     *
+     * @param other the other point
+     * @param bearing (output) direction to the other point along the shorter great circle path
+     * @param distance (output) distance in meters to the other point along the shorter great circle path
+     */
+    void bearingDistanceTo(const Point & other, double & bearing, double & distance);
+
+    /**
+     * @brief Return the point at which one would arrive after traveling on the 
+     * great circle path from this point at the specified bearing and for the specified distance.
+     *
+     * @param bearing direction of travel (in degrees, 0 is north)
+     * @param distance of travel in meters
+     * @param next (output) the point at which we'll arrive.
+     */
+    void stepTo(double bearing, double distance, Point & next);
+
+    /**
+     * @brief convert this point to its Maidenhead Grid specifier
+     * 
+     * @param grid (output) The Maidenhead Grid string XXnnxx
+     */
+    void toGrid(std::string & grid);
+
+    /**
+     * @brief Set this point to the location of a Maidenhead Grid specifier
+     * 
+     * @param grid A Maidenhead Grid specifier of the form XXnnxx (capital
+     * letter pair, digit pair, letter pair)
+     */
+    void fromGrid(const std::string & grid);
+
+    /**
+     * @brief Set this point from a string describing the location in 
+     * degrees-minutes-seconds of latitude and logitude. Specification is
+     * of the form [0-9]+:[0-5][0-9]:[0-5][0-9][NSns] [0-9]+:[0-5][0-9]:[0-5][0-9][EWew]
+     * 
+     * @param dms location (lat/lon) in degrees-minutes-seconds
+     */
+    void fromStringDMS(const std::string & dms);
+
+    /**
+     * @brief Set this point from a string describing the location in 
+     * degrees-minutes-seconds of latitude and logitude. Specification is
+     * in lat degrees/minutes/seconds and lon degrees/minutes/seconds as 
+     * doubles.  Negative values are South or West.
+     * 
+     * @param dms location (lat/lon) in degrees-minutes-seconds
+     */
+    void fromDMS(double lat_d, double lat_m, double lat_s, 
+		 double lon_d, double lon_m, double lon_s);
+    
+  private:
+    /// Latitude South is negative, North is positive. 
+    double lat;
+    
+    /// Longitude West is negative, East is positive. 
+    double lon;
+
+    /// Elevation referenced to Clark '88 Geode in meters. 
+    double elev; 
+
+    bool checkGrid(const std::string & grid);
+  }; 
+
+}
+#endif
