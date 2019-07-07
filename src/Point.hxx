@@ -30,6 +30,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define POINT_HDR_DEF
 #include <string>
 #include <regex>
+#include <cmath>
+
 /**
  * \class GeoProf::Point
  *
@@ -54,6 +56,12 @@ namespace GeoProf {
      * @param _lat the latitude of the point -- negative values are south of the equator
      * @param _lon the longitude of the point -- negative values are west of Grenwich
      * @param _elev (optional) the altitude of the point above mean-sea-level referenced to the Clarke 1866 Geode
+
+     * 
+     * Note that bearings between the poles are unlikely to make sense.
+     * In places where every direction is "south" or "north" the math
+     * is often beyond sensible limits.  If your application requires
+     * pole-to-pole paths, then look elsewhere, or just point south.
      */
     Point(double _lat = 0.0, double _lon = 0.0, double _elev = 0.0) {
       lat = _lat;
@@ -79,7 +87,7 @@ namespace GeoProf {
      * letter pair, digit pair, letter pair)
      */
     Point(const std::string & grid) {
-      fromGrid(grid);
+      grid2Pt(grid);
     }
 
     /**
@@ -119,27 +127,28 @@ namespace GeoProf {
      * @param other the other point
      * @return bearing in degrees.
      */
-    double bearingTo(const Point & other);
+    double bearingTo(const Point & other) const;
 
     
     /**
-     * @brief Calculate the great circle distance (in meters) from this point to anothe point
+     * @brief Calculate the great circle distance (in meters) from this point to another point
      *
      * @param other the other point
      * @return great circle distance in meters
      */
-    double distanceTo(const Point & other);
+    double distanceTo(const Point & other) const;
 
     /**
      * @brief Calculate the bearing (in degrees -- 0 is north) and distance (in meters) 
-     * from this point to anothe point
+     * from this point to another point
      * along the shorter great circle route
      *
      * @param other the other point
      * @param bearing (output) direction to the other point along the shorter great circle path
+     * @param reverse_bearing direction of travel from other point to this point (in degrees, 0 is north)
      * @param distance (output) distance in meters to the other point along the shorter great circle path
      */
-    void bearingDistanceTo(const Point & other, double & bearing, double & distance);
+    void bearingDistanceTo(const Point & other, double & bearing, double & reverse_bearing, double & distance) const;
 
     /**
      * @brief Return the point at which one would arrive after traveling on the 
@@ -149,14 +158,14 @@ namespace GeoProf {
      * @param distance of travel in meters
      * @param next (output) the point at which we'll arrive.
      */
-    void stepTo(double bearing, double distance, Point & next);
+    void stepTo(double bearing, double distance, Point & next) const;
 
     /**
      * @brief convert this point to its Maidenhead Grid specifier
      * 
      * @param grid (output) The Maidenhead Grid string XXnnxx
      */
-    void toGrid(std::string & grid);
+    void pt2Grid(std::string & grid) const;
 
     /**
      * @brief Set this point to the location of a Maidenhead Grid specifier
@@ -164,16 +173,7 @@ namespace GeoProf {
      * @param grid A Maidenhead Grid specifier of the form XXnnxx (capital
      * letter pair, digit pair, letter pair)
      */
-    void fromGrid(const std::string & grid);
-
-    /**
-     * @brief Set this point from a string describing the location in 
-     * degrees-minutes-seconds of latitude and logitude. Specification is
-     * of the form [0-9]+:[0-5][0-9]:[0-5][0-9][NSns] [0-9]+:[0-5][0-9]:[0-5][0-9][EWew]
-     * 
-     * @param dms location (lat/lon) in degrees-minutes-seconds
-     */
-    void fromStringDMS(const std::string & dms);
+    void grid2Pt(const std::string & grid);
 
     /**
      * @brief Set this point from a string describing the location in 
@@ -190,9 +190,27 @@ namespace GeoProf {
      * @param lon_s longitude seconds
      * @param ew true if latitude is east of Grenwich
      */
-    void fromDMS(double lat_d, double lat_m, double lat_s, char ns,
+    void dms2Pt(double lat_d, double lat_m, double lat_s, char ns,
 		 double lon_d, double lon_m, double lon_s, char ew);
 
+    /**
+     * @brief Correct the calculated bearing and distance by iterating
+     * around the calculated values to find the minimum error. 
+     *
+     * @param other the other point
+     * @param bearing direction to the other point along the shorter great circle path
+     * @param distance distance in meters to the other point along the shorter great circle path
+     * @param new_bearing (output) corrected bearing
+     * @param new_distance (output) corrected range
+     * 
+     */
+    void correctBearingDistanceTo(const Point & other, 
+				  const double bearing, 
+				  const double distance, 
+				  double & new_bearing, 
+				  double & new_distance) const;
+
+    
   private:
     /// Latitude South is negative, North is positive. 
     double lat;
@@ -211,13 +229,45 @@ namespace GeoProf {
      * letter pair, digit pair, letter pair)
      * @return true if this is a properly formatted grid, false otherwise. 
      */
-    bool checkGrid(const std::string & grid);
+    bool checkGrid(const std::string & grid) const;
     
     /**
      * @brief Helper for translating char positions in a grid 
      * locator into double offsets from 0 degrees.
      */
-    double gridDiff(char v, char s, double mul); 
+    double gridDiff(char v, char s, double mul) const;
+
+    /**
+     * @brief four quadrant arc tangent returning result in the range 0..2pi
+     * 
+     * @param y rise
+     * @param x run
+     * @return arctan in range 0..2pi
+     */
+    double atan2Pt(double y, double x) const;
+
+    /**
+     * @brief translate an angle into the range 0..2pi
+     * 
+     * @param ang angle in radians
+     * @return angle in range 0..2pi
+     */
+    double inSpan(double ang) const;
+
+    // recursive helper to correctBearingDistanceTo
+    bool recCorrectBearingDistanceTo(const Point & other, 
+				     const double bearing, 
+				     const double distance, 
+				     const double b_span,
+				     const double d_span,
+				     double & new_bearing, 
+				     double & new_distance
+				     ) const;
+    
+    // Useful constants
+    static const double clarke_66_al;    /*Clarke 1866 ellipsoid*/
+    static const double clarke_66_bl;
+    static const double rad_per_deg;
   }; 
 
 }
