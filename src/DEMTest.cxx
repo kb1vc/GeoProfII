@@ -41,7 +41,7 @@ int main(int argc, char ** argv)
   GeoProf::DEM dem(fname);
 
  
-  std::cerr << dem.file_name << std::endl; 
+  std::cerr << dem.getName() << std::endl; 
 	     
 }
 

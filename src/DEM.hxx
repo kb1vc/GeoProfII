@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <boost/format.hpp>
 #include <regex>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 
 #include "Point.hxx"
 #include "ZFile.hxx"
@@ -64,28 +67,42 @@ namespace GeoProf {
      * 
      * @param fname names a binary elevation file. 
      */
-    DEM(const std::string & fname) {
-      inf.open(fname);
+    DEM(const std::string & fname);
 
-      // read the header.   See "Standards for Digital Elevation Models -- Part2 : Specifications -- Appendix 2-A
-      readHeader();
-    }
-
+    const std::string & getName() const { return file_name; }
+    
+  private:
     std::string file_name;
     std::string description;
     Point corners[4];
+    unsigned int num_profiles;
+    unsigned int profile_length; 
 
     
-  private:
-
     static std::regex float_cleanup_re;
+    static std::regex float_convert_re;    
+
+    std::vector<std::vector<int> > elevations;
+    std::vector<Point> elevation_start_points;
+
+    void openInstream(const std::string & fname);
+
+    void closeInstream();
     
     void readHeader();
+
+    void readProfiles();
+
+    void readSingleProfile();
 
     void cleanupFloat(std::string & str) {
       str = std::regex_replace(str, float_cleanup_re, "$1 ");
     }
 
+    void convertDFloat2EFloat(std::string & str) {
+      str = std::regex_replace(str, float_convert_re, "$1E$2");      
+    }
+    
     template<typename T> void extract(std::string & str, 
 				      unsigned int first_col, 
 				      unsigned int last_col, 
@@ -97,7 +114,18 @@ namespace GeoProf {
       std::stringstream strstr(sub);
       strstr >> ret; 
     }
-      
+
+    double readDouble(std::istream & in) {
+      // this fixes the problem with nnnD+03 type formats for FORTRAN
+      std::string buf;
+      in >> buf;
+      convertDFloat2EFloat(buf);
+      std::stringstream strstr(buf);
+      double ret; 
+      strstr >> ret; 
+      return ret; 
+    }
+    
     template<typename T> void extractVector(std::string & str, 
 					    unsigned int first_col, 
 					    unsigned int last_col, 
@@ -113,7 +141,9 @@ namespace GeoProf {
       }
     }
 
-    std::ifstream inf; 
+    std::ifstream compressed_istream;
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;    
+    std::istream * instr_p; 
   }; 
 }
 #endif

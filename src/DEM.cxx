@@ -27,18 +27,101 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "DEM.hxx"
-#include <regex>
 
 std::regex GeoProf::DEM::float_cleanup_re = std::regex("([0-9]E[+-][0-9][0-9])");
+std::regex GeoProf::DEM::float_convert_re = std::regex("([0-9])D([+-][0-9])");
+
+GeoProf::DEM::DEM(const std::string & fname) {
+  openInstream(fname);
+
+  // read the header.   See "Standards for Digital Elevation Models -- Part2 : Specifications -- Appendix 2-A
+  readHeader();
+      
+  // now allocate the map
+  elevations.resize(num_profiles);
+  elevation_start_points.resize(num_profiles);
+
+  // and read the profiles
+  readProfiles();
+
+  closeInstream();
+}
+
+void GeoProf::DEM::openInstream(const std::string & fname) {
+  // from an example at https://techoverflow.net/2013/11/03/c-iterating-lines-in-a-gz-file-using-boostiostreams/
+  
+  compressed_istream.open(fname, std::ios_base::in | std::ios_base::binary);
+  inbuf.push(boost::iostreams::gzip_decompressor());
+  inbuf.push(compressed_istream); 
+
+  // now make it an input stream
+  instr_p =  new std::istream(&inbuf);
+  
+  std::string status[4]; 
+  status[0] = instr_p->good() ? "Good" : "Not Good";
+  status[1] = instr_p->eof() ? "EOF" : "Not EOF";
+  status[2] = instr_p->fail() ? "FAIL" : "OK";
+  status[3] = instr_p->bad() ? "Bad" : "Not Bad";
+  
+  for(int i = 0; i < 3; i++) {
+    std::cerr << status[i] << ", "; 
+  }
+  std::cerr << std::endl;
+}
+
+void GeoProf::DEM::closeInstream() {
+  compressed_istream.close();
+}
+
+
+void GeoProf::DEM::readProfiles() {
+  for(unsigned int i = 0; i < num_profiles; i++) {
+    readSingleProfile();
+  }
+}
+
+void GeoProf::DEM::readSingleProfile()
+{
+  // The profile contains FORTRAN format double precision numbers
+  // with "D" in the exponent marker.  That means that we need to parse
+  // the header from a stream.
+  int row, col; 
+  (*instr_p) >> row >> col;
+  int m, n;
+  (*instr_p) >> m >> n;
+
+  
+  double lon, lat;
+  lon = readDouble((*instr_p));
+  lat = readDouble((*instr_p)); 
+  elevation_start_points[col - 1] = Point(lat / 3600.0, lon / 3600.0, 0.0);
+
+  Point pt = elevation_start_points[col - 1];
+  std::cerr << boost::format("row = %d col = %d m = %d n = %d Point [%f %f]\n")
+    % row % col % m % n % pt.getLatitude() % pt.getLongitude();
+
+  double dat_el, min_el, max_el; 
+  dat_el = readDouble((*instr_p));
+  max_el = readDouble((*instr_p));
+  min_el = readDouble((*instr_p));  
+
+  elevations[col - 1].resize(m);
+  for(int i = 0; i < m; i++) {
+    (*instr_p) >> elevations[col - 1][i];
+    if(i < 10) std::cerr << elevations[col - 1][i] << std::endl; 
+  }
+
+  if((m + n) > 10000) exit(-1);
+}
 
 void GeoProf::DEM::readHeader() {
   // read the first 1024 bytes
-  std::string ibuf(1024, ' ');
-  inf.get(&ibuf[0], 1024); // this contains the whole header.
+  std::string buf(1024, ' ');
+  instr_p->get(&buf[0], 1024); // this contains the whole header.
 
   // FORTRAN shows double precision floats as n.nnnnnnnDsnn  change the D to an E
-  std::regex re("([0-9])D([+-][0-9])");
-  std::string buf = std::regex_replace(ibuf, re, "$1E$2");
+  convertDFloat2EFloat(buf);
+
   // now cut it up.
   extract(buf, 1, 40, file_name);
   extract(buf, 41, 80, description);
@@ -52,16 +135,8 @@ void GeoProf::DEM::readHeader() {
   extractVector(buf, 817, 852, resolutionvec, 3);
   std::vector<unsigned int> dims; 
   extractVector(buf, 853, 864, dims, 2);
+  num_profiles = dims[1];
 
-  std::cerr << boost::format("file_name [%s]\ndescription[%s]\ndims (%d %d)\n")
-    % file_name % description % dims[0] % dims[1];
-
-  for(int i = 0; i < 4; i++) {
-    std::cerr << boost::format("Corner[%d] = [%f %f]\n") % i % corners[i].getLatitude() % corners[i].getLongitude();
-  }
-
-  for(int i = 0; i < 3; i++) {
-    std::cerr << resolutionvec[i] << std::endl; 
-  }
+  // we now know how big the 
 }
 

@@ -25,12 +25,16 @@ target_link_libraries(PathTest LINK_PUBLIC
   GeoProf TestUtils  
   ${Boost_LIBRARIES})
 
+find_package(ZLIB REQUIRED)
+find_package(Boost COMPONENTS  iostreams)
+include_directories( ${ZLIB_INCLUDE_DIRS} )
 
 add_executable(DEMTest DEMTest.cxx)
 
 target_link_libraries(DEMTest LINK_PUBLIC
   GeoProf TestUtils
-  ${Boost_LIBRARIES})
+  ${Boost_LIBRARIES}
+  ${ZLIB_LIBRARIES}  )
 
 
   
