@@ -27,22 +27,25 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "DEM.hxx"
+#include "DEMTile.hxx"
 
 std::regex GeoProf::DEM::float_cleanup_re = std::regex("([0-9]E[+-][0-9][0-9])");
 std::regex GeoProf::DEM::float_convert_re = std::regex("([0-9])D([+-][0-9])");
 
-GeoProf::DEM::DEM(const std::string & fname) {
+GeoProf::DEM::DEM(const std::string & fname, ElevationDB<DEMTile> & database) {
   openInstream(fname);
 
   // read the header.   See "Standards for Digital Elevation Models -- Part2 : Specifications -- Appendix 2-A
   readHeader();
-      
-  // now allocate the map
-  elevations.resize(num_profiles);
-  elevation_start_points.resize(num_profiles);
 
-  // and read the profiles
+  // create the DEMTile for this file
+  dem_tile = new DEMTile(corners[0], corners[2], num_profiles);
+
+  // read the profiles
   readProfiles();
+
+  // now register the tile with the database
+  database.registerTile(dem_tile);
 
   closeInstream();
 }
@@ -76,11 +79,11 @@ void GeoProf::DEM::closeInstream() {
 
 void GeoProf::DEM::readProfiles() {
   for(unsigned int i = 0; i < num_profiles; i++) {
-    readSingleProfile();
+    readSingleProfile(i);
   }
 }
 
-void GeoProf::DEM::readSingleProfile()
+void GeoProf::DEM::readSingleProfile(unsigned int xidx)
 {
   // The profile contains FORTRAN format double precision numbers
   // with "D" in the exponent marker.  That means that we need to parse
@@ -90,25 +93,25 @@ void GeoProf::DEM::readSingleProfile()
   int m, n;
   (*instr_p) >> m >> n;
 
+  std::vector<double> & elev = dem_tile->getProfile(col);
   
   double lon, lat;
   lon = readDouble((*instr_p));
   lat = readDouble((*instr_p)); 
-  elevation_start_points[col - 1] = Point(lat / 3600.0, lon / 3600.0, 0.0);
 
-  Point pt = elevation_start_points[col - 1];
-  std::cerr << boost::format("row = %d col = %d m = %d n = %d Point [%f %f]\n")
-    % row % col % m % n % pt.getLatitude() % pt.getLongitude();
+  elev.resize(m);
+  
+  std::cerr << boost::format("row = %d col = %d m = %d n = %d\n")
+    % row % col % m % n;
 
   double dat_el, min_el, max_el; 
   dat_el = readDouble((*instr_p));
   max_el = readDouble((*instr_p));
   min_el = readDouble((*instr_p));  
 
-  elevations[col - 1].resize(m);
   for(int i = 0; i < m; i++) {
-    (*instr_p) >> elevations[col - 1][i];
-    if(i < 10) std::cerr << elevations[col - 1][i] << std::endl; 
+    (*instr_p) >> elev[i];
+    if(i < 10) std::cerr << elev[i] << std::endl; 
   }
 
   if((m + n) > 10000) exit(-1);

@@ -1,7 +1,9 @@
 set(GeoProf_SRCS
   Point.cxx
   Path.cxx
-  DEM.cxx)
+  DEM.cxx
+  DEMTile.cxx
+  )
 
 set(PointTest_SRCS
   PointTest.cxx)

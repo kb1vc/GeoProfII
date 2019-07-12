@@ -26,24 +26,32 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-#include "DEM.hxx"
 #include "DEMTile.hxx"
-#include "ElevationDB.hxx"
-#include <boost/format.hpp>
-#include <iostream>
-#include <cmath>
-#include <random>
 
-
-
-int main(int argc, char ** argv)
-{
-  std::string fname(argv[1]);
-  GeoProf::ElevationDB<GeoProf::DEMTile> dbase; 
-  GeoProf::DEM dem(fname, dbase);
- 
-  std::cerr << dem.getName() << std::endl; 
-	     
+bool GeoProf::DEMTile::getElevation(const Point & point, double & elev) const {
+  return false; 
 }
+    
+bool GeoProf::DEMTile::pointToIndex(const Point & point, unsigned int & x, unsigned int & y) {
+  int cols = elevation_array.size();
+  // where are we in the range E to W..
+  double x_offset = point.getLongitude() - sw_lon;
+  double lonrange = ne_lon - sw_lon;
+  // cut it up into columns
+  double d_xidx = (x_offset / lonrange) * ((double) cols);
+  x = (unsigned int) floor(d_xidx);
 
+  if(x >= cols) return false;
+
+  // now find the row
+  std::vector<double> & col_vec = elevation_array[x];
+  int rows = col_vec.size();
+  double y_offset = point.getLatitude() - sw_lat;
+  double latrange = ne_lat - sw_lat;
+  double d_yidx = (y_offset / latrange) * ((double) rows);
+  y = (unsigned int) floor(d_yidx);
+
+  if(y >= rows) return false;
+
+  return true; 
+}
