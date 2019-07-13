@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <boost/format.hpp>
 #include "Point.hxx"
-
+#include "SaveRestObj.hxx"
 
 /**
  * \class GeoProf::ElevationTile
@@ -50,8 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Contact: kb1vc@kb1vc.org
  *
  */
+
 namespace GeoProf {
-  class BoundingBox {
+  class BoundingBox : public SaveRestoreObj {
   public:
     BoundingBox(const Point & sw, const Point & ne) {
       setBoundingBox(sw, ne); 
@@ -109,11 +110,21 @@ namespace GeoProf {
       return Point(ne_lat, ne_lon);
     }
 
+    void save(std::ostream & os) {
+      os.write((char*)&sw_lat, sizeof(double));
+      os.write((char*)&sw_lon, sizeof(double));
+      os.write((char*)&ne_lat, sizeof(double));
+      os.write((char*)&ne_lon, sizeof(double));      
+    }
+
+    void restore(std::istream & is) {
+    }
+    
   private: 
     double sw_lat, sw_lon, ne_lat, ne_lon; 
   };
   
-  class ElevationTile {
+  class ElevationTile : public SaveRestoreObj {
   public:      
     /**
      * @brief Specify the region for this elevation tile. 
@@ -125,6 +136,8 @@ namespace GeoProf {
     ElevationTile() {
     }
 
+    ElevationTile(const std::string & fname, bool restore_binary = false) { }
+    
     void setParams(const Point & sw, const Point & ne) {
       bbox = BoundingBox(sw, ne);
     }
@@ -156,21 +169,7 @@ namespace GeoProf {
     virtual bool getElevation(const Point & point, double & elev) const = 0;
 
     
-    /**
-     * @brief save this elevation table to a binary stream
-     * 
-     * @param os the output stream
-     */
-    virtual void save(std::ostream & os) const { }
-
-    /** 
-     * @brief build this elevation table from a binary stream
-     * @param ins the input stream
-     */
-    virtual void restore(std::istream & ins) { };
-
     const BoundingBox & getBoundingBox() const { return bbox; }
-
 
   protected:
     BoundingBox bbox; 

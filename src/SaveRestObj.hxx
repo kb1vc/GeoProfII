@@ -26,49 +26,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-#include "DEM.hxx"
-#include "DEMTile.hxx"
-#include "ElevationDB.hxx"
-#include <boost/format.hpp>
+#ifndef SAVE_REST_HDR_DEF
+#define SAVE_REST_HDR_DEF
+#include <vector>
 #include <iostream>
-#include <cmath>
-#include <random>
-#include <list>
+#include <boost/format.hpp>
 
-
-int main(int argc, char ** argv)
-{
-  //  std::list<std::string> fname_list;
-  // fname_list.push_back(std::string(argv[1]));
-  // GeoProf::ElevationDB<GeoProf::DEMTile> dbase(fname_list); 
-  std::ifstream file_list_stream(argv[1]);
-  GeoProf::ElevationDB<GeoProf::DEMTile> dbase(file_list_stream);
-  file_list_stream.close();
-
-  std::list<GeoProf::Point> pt_list; 
-  pt_list.push_back(GeoProf::Point(45.3, -98.2));
-  pt_list.push_back(GeoProf::Point(45.4, -98.2));
-  pt_list.push_back(GeoProf::Point(45.5, -98.2));  
-  pt_list.push_back(GeoProf::Point(42.48893, -71.8868));
-  pt_list.push_back(GeoProf::Point(42.45, -71.85));
-  pt_list.push_back(GeoProf::Point(42.45, -71.90));  
-
-  
-  for(auto & pt : pt_list) {
-    double elev; 
-    if(dbase.getElevation(pt, elev)) {
-      std::cerr << boost::format("Point %s : Elevation %g\n")
-	% pt.toString() % elev;
+/**
+ * \class GeoProf::SaveRestoreObj
+ *
+ * \brief Base class for all objects that can save themselves to a binary stream
+ * 
+ * \author $Author: kb1vc $
+ *
+ * \date $Date: 2005/04/14 14:16:20 $
+ *
+ * Contact: kb1vc@kb1vc.org
+ *
+ */
+namespace GeoProf {
+  class SaveRestoreObj {
+  public:
+    SaveRestoreObj() {
     }
-    else {
-      std::cout << boost::format("Could not find point %s\n")
-	% pt.toString();
-    }
-  }
 
-  std::cerr << "saving to test.dem_sav\n";
-  dbase.save(std::string("test.dem_sav"));
-  std::cerr << "saved to test.dem_sav\n";  
+    virtual void save(std::ostream & os) = 0;
+
+    virtual void restore(std::istream & os) = 0;
+  }; 
+
 }
-
+#endif

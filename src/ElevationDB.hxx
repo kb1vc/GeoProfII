@@ -34,13 +34,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <map>
 #include <list>
+#include <iostream>
+#include <fstream>
 #include "Point.hxx"
 #include "Path.hxx"
 #include "ElevationTile.hxx"
+#include "SaveRestObj.hxx"
 #include <type_traits>
 #include <utility>
 #include <boost/format.hpp>
-
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
+#include <boost/filesystem.hpp>
 /**
  * \class GeoProf::ElevationDB
  *
@@ -60,19 +69,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 namespace GeoProf {
   
-  class ElevationDB_Base {
-  public:
-    ElevationDB_Base() {
-    }
-
-    
-  };
   
-  template<typename TileClass> class ElevationDB : public ElevationDB_Base {
+  template<typename TileClass> class ElevationDB : public SaveRestoreObj {
     // Test to ensure TileClass is a subclass of ElevationTile...
     typedef typename std::enable_if<std::is_base_of<ElevationTile, TileClass>::value>::type     TileClass_must_be_derived_from_ElevationTile; 
 
   public:      
+    /**
+     * @brief Create an empty elevation database (for a later call to RESTORE)
+     * 
+     */
+    ElevationDB() {
+    }; 
+
     /**
      * @brief Create the elevation database from a set of tiles
      * 
@@ -120,12 +129,6 @@ namespace GeoProf {
       // 	% bb.getSW().toString() % bb.getNE().toString();
       
       tile_map[bb] = tile_p;
-      tile_list.push_back(tile_p);
-
-      // check the integrity of the list
-      if(tile_list.size() != tile_map.size()) {
-	// std::cerr << "tile_list and tile_map size disagree\n";
-      }
     }
 
     TileClass * findTile(const Point & point) {
@@ -134,11 +137,6 @@ namespace GeoProf {
       for(auto & me : tile_map) {
 	if(me.first.isIn(point)) return me.second;
       }
-      // for(auto & me : tile_list) {	
-      // 	if(me->getBoundingBox().isIn(point)) return me; 
-      // }
-      //      return (retp == tile_map.end()) ? NULL : retp->second;
-      //      return (tile_map.find(bb) != tile_map.end()) ? tile_map[bb] : NULL;
       return NULL;
     }
 
@@ -167,10 +165,38 @@ namespace GeoProf {
 
       return true; 
     }
+
+    void save(const std::string & fname) {
+      boost::iostreams::filtering_ostream out;
+      out.push(boost::iostreams::gzip_compressor(boost::iostreams::gzip_params(boost::iostreams::gzip::best_compression)));
+      out.push(boost::iostreams::file_descriptor_sink(fname)); 
+
+      save(out);
+      //      out.close();
+
+      // compressed_ostream.close();
+    }
+
+    void save(std::ostream & os) {
+      // save format is
+      // [unsigned int] sizeof_map
+      // [char [256] ] tile_type_name
+      // one TileClass instance after another.
+
+      unsigned int sizeof_map = tile_map.size();
+      char tile_type_name_buf[256];
+      os.write((char*)&sizeof_map, sizeof(unsigned int));
+      os.write((char*)&tile_type_name_buf, 256); 
+
+      for(auto & tile : tile_map) {
+	tile.second->save(os);
+      }
+    }
     
+    void restore(std::istream & is) {
+    }
   private:
     std::map<BoundingBox, TileClass *> tile_map;
-    std::list<TileClass *> tile_list;    
   }; 
 
 }

@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "ElevationTile.hxx"
+#include "SaveRestObj.hxx"
 
 
 /**
@@ -102,6 +103,22 @@ namespace GeoProf {
       }
     }
     
+    void save(std::ostream & os) {
+      // format is
+      // [BoundingBox]
+      // [cols]
+      // [rows][profile] ...
+      cols = elevation_array.size();
+      bbox.save(os); 
+      os.write((char*)&cols, sizeof(cols));
+      for(int i = 0; i < cols; i++) {
+	unsigned int rows = elevation_array[i].size();
+	os.write(reinterpret_cast<const char *>(&elevation_array[i][0]), rows * sizeof(double));
+      }
+    }
+
+    void restore(std::istream & is) {
+    }
   private:
 
     std::vector<std::vector< double >> elevation_array;
