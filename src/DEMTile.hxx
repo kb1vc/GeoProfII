@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "ElevationTile.hxx"
+#include "DEM.hxx"
 
 namespace GeoProf {
   class DEMTile : public ElevationTile {
@@ -63,14 +64,18 @@ namespace GeoProf {
      * @brief Initialize the tables
      * 
      */
-    DEMTile(const Point & sw, const Point & ne, 
-	    unsigned int _cols) : ElevationTile(sw, ne) {
-      // build the first dimension of the elevation table.
-      rows = 0; 
-      cols = _cols; 
-      elevation_array.resize(cols);      
+    DEMTile(const std::string & fname) {
+      DEM(fname, this);
     }
 
+    void setParams(const Point & sw, const Point & ne, 
+		   unsigned int _cols) {
+      ElevationTile::setParams(sw, ne);
+      rows = 0;
+      cols = _cols; 
+      elevation_array.resize(cols);
+    }
+    
     std::vector<double> & getProfile(unsigned int col) { 
       // remember columns are numbered starting with "1"
       return elevation_array[col-1]; 

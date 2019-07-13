@@ -32,7 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <regex>
 #include <cmath>
 #include <vector>
-
+#include <map>
+#include <list>
 #include "Point.hxx"
 #include "Path.hxx"
 #include "ElevationTile.hxx"
@@ -73,12 +74,32 @@ namespace GeoProf {
 
   public:      
     /**
-     * @brief Create the elevation database -- this is empty. 
+     * @brief Create the elevation database from a set of tiles
+     * 
+     * @param file_name_list list of files to be read, one for each tile.
      * 
      */
-    ElevationDB() {
+    ElevationDB(const std::list<std::string> & file_name_list) {
+      for(auto & fn: file_name_list) {
+	registerTile(new TileClass(fn));
+      }
     }; 
 
+    /**
+     * @brief Create the elevation database from a stream producing a list of filenames
+     * 
+     * @param lstr the stream with the list of filenames
+     * 
+     */
+    ElevationDB(std::istream & lstr) {
+      std::string tile_file_name;
+      while(lstr >> tile_file_name) {
+	registerTile(new TileClass(tile_file_name));
+      }
+    }
+
+
+    
     /**
      * @brief Given a path, lookup each point in the elevation table
      * and update its elevation member. 
@@ -95,16 +116,30 @@ namespace GeoProf {
       tile_p->prepare();
 
       BoundingBox bb = tile_p->getBoundingBox(); 
-      std::cerr << boost::format("Bounding box SW = %s  NE = %s\n")
-	% bb.getSW().toString() % bb.getNE().toString();
+      // std::cerr << boost::format("Bounding box SW = %s  NE = %s\n")
+      // 	% bb.getSW().toString() % bb.getNE().toString();
       
-      tile_map[tile_p->getBoundingBox()] = tile_p;
+      tile_map[bb] = tile_p;
+      tile_list.push_back(tile_p);
+
+      // check the integrity of the list
+      if(tile_list.size() != tile_map.size()) {
+	// std::cerr << "tile_list and tile_map size disagree\n";
+      }
     }
 
     TileClass * findTile(const Point & point) {
       BoundingBox bb(point);
 
-      return (tile_map.find(bb) != tile_map.end()) ? tile_map[bb] : NULL;
+      for(auto & me : tile_map) {
+	if(me.first.isIn(point)) return me.second;
+      }
+      // for(auto & me : tile_list) {	
+      // 	if(me->getBoundingBox().isIn(point)) return me; 
+      // }
+      //      return (retp == tile_map.end()) ? NULL : retp->second;
+      //      return (tile_map.find(bb) != tile_map.end()) ? tile_map[bb] : NULL;
+      return NULL;
     }
 
     /**
@@ -117,10 +152,16 @@ namespace GeoProf {
      */
     double getElevation(const Point & point, double & elev) {
       TileClass * tile = findTile(point); 
-      if(tile == NULL) return false; 
+      if(tile == NULL) {
+	// std::cerr << boost::format("Could not find a tile for point %s\n")
+	//   % point.toString();
+	return false; 
+      }
       
-      std::cerr << boost::format("Found a tile for point %s\n")
-	% point.toString();
+      // std::cerr << boost::format("Found a tile for point %s\n")
+      // 	% point.toString();
+      // std::cerr << boost::format("Tile Bounding box SW = %s  NE = %s\n")
+      // 	% tile->getBoundingBox().getSW().toString() % tile->getBoundingBox().getNE().toString();      
       
       return tile->getElevation(point, elev);
 
@@ -129,6 +170,7 @@ namespace GeoProf {
     
   private:
     std::map<BoundingBox, TileClass *> tile_map;
+    std::list<TileClass *> tile_list;    
   }; 
 
 }

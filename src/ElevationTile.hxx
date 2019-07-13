@@ -122,11 +122,11 @@ namespace GeoProf {
      * @param sw the southwest corner of this tile
      * @param ne the northeast corner of this tile
      */
-    ElevationTile(const Point & sw, const Point & ne) {
-      bbox = BoundingBox(sw, ne);
+    ElevationTile() {
     }
 
-    ElevationTile() {
+    void setParams(const Point & sw, const Point & ne) {
+      bbox = BoundingBox(sw, ne);
     }
 
     /**

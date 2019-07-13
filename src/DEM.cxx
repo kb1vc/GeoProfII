@@ -32,20 +32,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 std::regex GeoProf::DEM::float_cleanup_re = std::regex("([0-9]E[+-][0-9][0-9])");
 std::regex GeoProf::DEM::float_convert_re = std::regex("([0-9])D([+-][0-9])");
 
-GeoProf::DEM::DEM(const std::string & fname, ElevationDB<DEMTile> & database) {
+GeoProf::DEM::DEM(const std::string & fname, DEMTile * tile_p) {
   openInstream(fname);
 
   // read the header.   See "Standards for Digital Elevation Models -- Part2 : Specifications -- Appendix 2-A
   readHeader();
 
-  // create the DEMTile for this file
-  dem_tile = new DEMTile(corners[0], corners[2], num_profiles);
+  
+  // set the basics for the dem tile
+  tile_p->setParams(corners[0], corners[2], num_profiles);
 
   // read the profiles
-  readProfiles();
-
-  // now register the tile with the database
-  database.registerTile(dem_tile);
+  readProfiles(tile_p);
 
   closeInstream();
 }
@@ -59,17 +57,6 @@ void GeoProf::DEM::openInstream(const std::string & fname) {
 
   // now make it an input stream
   instr_p =  new std::istream(&inbuf);
-  
-  std::string status[4]; 
-  status[0] = instr_p->good() ? "Good" : "Not Good";
-  status[1] = instr_p->eof() ? "EOF" : "Not EOF";
-  status[2] = instr_p->fail() ? "FAIL" : "OK";
-  status[3] = instr_p->bad() ? "Bad" : "Not Bad";
-  
-  for(int i = 0; i < 3; i++) {
-    std::cerr << status[i] << ", "; 
-  }
-  std::cerr << std::endl;
 }
 
 void GeoProf::DEM::closeInstream() {
@@ -77,13 +64,13 @@ void GeoProf::DEM::closeInstream() {
 }
 
 
-void GeoProf::DEM::readProfiles() {
+void GeoProf::DEM::readProfiles(DEMTile * tile_p) {
   for(unsigned int i = 0; i < num_profiles; i++) {
-    readSingleProfile(i);
+    readSingleProfile(tile_p, i);
   }
 }
 
-void GeoProf::DEM::readSingleProfile(unsigned int xidx)
+void GeoProf::DEM::readSingleProfile(DEMTile * tile_p, unsigned int xidx)
 {
   // The profile contains FORTRAN format double precision numbers
   // with "D" in the exponent marker.  That means that we need to parse
@@ -93,7 +80,7 @@ void GeoProf::DEM::readSingleProfile(unsigned int xidx)
   int m, n;
   (*instr_p) >> m >> n;
 
-  std::vector<double> & elev = dem_tile->getProfile(col);
+  std::vector<double> & elev = tile_p->getProfile(col);
   
   double lon, lat;
   lon = readDouble((*instr_p));

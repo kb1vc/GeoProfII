@@ -39,20 +39,62 @@ void GeoProf::BoundingBox::setBoundingBox(const Point & sw, const Point & ne) {
 bool GeoProf::BoundingBox::operator<(const BoundingBox & other) const {
   bool retval; 
 
-  if(ne_lat < other.sw_lat) {
-    retval = true; 
+  double this_comp_loc = 360.0 * 0.5 * (ne_lat + sw_lat) + 0.5 * (ne_lon + sw_lon);
+  double other_comp_loc = 360.0 * 0.5 * (other.ne_lat + other.sw_lat) + 0.5 * (other.ne_lon + other.sw_lon);
+  if(other.sw_lat == other.ne_lat) { // we're looking at a point
+    if(isIn(Point(other.sw_lat, other.sw_lon))) {
+      // std::cerr << "other point is in bounding box\n";
+      retval = false;
+    }
+    else {
+      // std::cerr << "BIng\n";
+      if(sw_lat <= other.sw_lat) {
+	// point is below the tile
+	// std::cerr << "\t A\n";
+	retval = true;
+      }
+      else if(sw_lat == ne_lat) {
+	// point is in the same row as the tile
+	// is it to the west of the tile?
+	// std::cerr << "\t B\n";	
+	retval = sw_lon <= other.sw_lon;
+      }
+      else {
+	// point is above the tile
+	// std::cerr << "\t C\n";
+	retval = false; 
+      }
+    }
   }
-  else if(ne_lon < other.sw_lon) {
-    retval = true; 
+  else if(sw_lat == ne_lat) { // we are a point
+    if(other.isIn(Point(sw_lat, sw_lon))) {
+      // std::cerr << "this point %s is in bounding box\n";
+      retval = false;
+    }
+    else {
+      // std::cerr << "Bang\n";      
+      retval = (other.sw_lat < sw_lat) ?  (other.sw_lon < sw_lon) : false;
+    }
+  }
+  else if(this_comp_loc > other_comp_loc) {
+    // std::cerr << "Bong\n"; 
+    retval = false;
   }
   else {
-    retval = false; 
+    // std::cerr << "Beep\n";
+    retval = true; 
   }
 
-  std::cerr << boost::format("Comparing [%g %g -- %g %g] to [%g %g -- %g %g] got %c\n")
-    % sw_lat % sw_lon % ne_lat % ne_lon 
-    % other.sw_lat % other.sw_lon % other.ne_lat % other.ne_lon 
-    % ((char) (retval ? 'T' : 'F'));
+  // if(retval && (other < *this)) {
+  //   std::cerr << boost::format("OOOOPS!  Comparing [%g %g -- %g %g] to [%g %g -- %g %g] got %c got TRUE both ways\n")
+  //     % sw_lat % sw_lon % ne_lat % ne_lon 
+  //     % other.sw_lat % other.sw_lon % other.ne_lat % other.ne_lon 
+  //     % ((char) (retval ? 'T' : 'F'));
+  // }
+  // std::cerr << boost::format("Comparing [%g %g -- %g %g] (%g) to [%g %g -- %g %g] (%g) got %c\n\n\n")
+  //   % sw_lat % sw_lon % ne_lat % ne_lon % this_comp_loc
+  //   % other.sw_lat % other.sw_lon % other.ne_lat % other.ne_lon % other_comp_loc
+  //   % ((char) (retval ? 'T' : 'F'));
 
   return retval; 
 }
@@ -77,8 +119,8 @@ bool GeoProf::BoundingBox::getPosition(const Point & pt, unsigned int lat_pts, u
   lon_idx = ((unsigned int) d_lon_idx);
   lon_offset = p_lon - d_lon_idx * lon_deg_p_pt; 
       
-  std::cerr << boost::format("getOffset for pt %s lat_idx = %d lon_idx = %d  lat_pts %d lon_pts %d lat_deg_p_pt = %g  lon_deg_p_pt %g\n")
-    % pt.toString() % lat_idx % lon_idx % lat_pts % lon_pts % lat_deg_p_pt % lon_deg_p_pt; 
+  // std::cerr << boost::format("getOffset for pt %s lat_idx = %d lon_idx = %d  lat_pts %d lon_pts %d lat_deg_p_pt = %g  lon_deg_p_pt %g\n")
+  //   % pt.toString() % lat_idx % lon_idx % lat_pts % lon_pts % lat_deg_p_pt % lon_deg_p_pt; 
   return true; 
 }
 
@@ -91,7 +133,12 @@ bool GeoProf::BoundingBox::getPosition(const Point & pt, unsigned int lat_pts, u
 bool GeoProf::BoundingBox::isIn(const Point & pt) const {
   double p_lat = pt.getLatitude();
   double p_lon = pt.getLongitude();
-  return (p_lat >= sw_lat) && (p_lat <= ne_lat) &&
+  bool retval = (p_lat >= sw_lat) && (p_lat <= ne_lat) &&
     (p_lon >= sw_lon) && (p_lon <= ne_lon);
-	
+
+  // std::cerr << boost::format("isIn is testing pt %s against sw [%g %g] ne [%g %g] -> %c\n")
+  //   % pt.toString() % sw_lat % sw_lon % ne_lat % ne_lon 
+  //   % ((char) (retval ? 'T' : 'F'));
+
+  return retval; 
 }

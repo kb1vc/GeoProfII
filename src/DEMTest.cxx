@@ -34,27 +34,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <cmath>
 #include <random>
-
+#include <list>
 
 
 int main(int argc, char ** argv)
 {
-  std::string fname(argv[1]);
-  GeoProf::ElevationDB<GeoProf::DEMTile> dbase; 
-  GeoProf::DEM dem(fname, dbase);
- 
-  std::cerr << dem.getName() << std::endl; 
+  //  std::list<std::string> fname_list;
+  // fname_list.push_back(std::string(argv[1]));
+  // GeoProf::ElevationDB<GeoProf::DEMTile> dbase(fname_list); 
+  std::ifstream file_list_stream(argv[1]);
+  GeoProf::ElevationDB<GeoProf::DEMTile> dbase(file_list_stream);
+  file_list_stream.close();
+
+  std::list<GeoProf::Point> pt_list; 
+  pt_list.push_back(GeoProf::Point(45.3, -98.2));
+  pt_list.push_back(GeoProf::Point(45.4, -98.2));
+  pt_list.push_back(GeoProf::Point(45.5, -98.2));  
+  pt_list.push_back(GeoProf::Point(42.48893, -71.8868));
+  pt_list.push_back(GeoProf::Point(42.45, -71.85));
+  pt_list.push_back(GeoProf::Point(42.45, -71.90));  
+
   
-  GeoProf::Point test_pt(45.3, -98.2);
-  
-  double elev; 
-  if(dbase.getElevation(test_pt, elev)) {
-    std::cout << boost::format("Point %s : Elevation %g\n")
-      % test_pt.toString() % elev;
-  }
-  else {
-    std::cout << boost::format("Could not find point %s\n")
-      % test_pt.toString();
+  for(auto & pt : pt_list) {
+    double elev; 
+    if(dbase.getElevation(pt, elev)) {
+      std::cerr << boost::format("Point %s : Elevation %g\n")
+	% pt.toString() % elev;
+    }
+    else {
+      std::cout << boost::format("Could not find point %s\n")
+	% pt.toString();
+    }
   }
 	     
 }

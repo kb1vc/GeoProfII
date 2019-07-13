@@ -34,7 +34,7 @@ bool GeoProf::DEMTile::getElevation(const Point & point, double & elev) const {
   
   if(bbox.getPosition(point, cols, rows, lat_idx, lon_idx, lat_offset, lon_offset)) {
     // use "at" so that we trigger an exception if this is screwed up. 
-    elev = elevation_array.at(lat_idx).at(lon_idx); 
+    elev = elevation_array.at(lon_idx).at(lat_idx); 
     return true; 
   }
   

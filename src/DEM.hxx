@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Point.hxx"
 #include "ZFile.hxx"
-#include "DEMTile.hxx"
 
 /**
  * \class GeoProf::DEM
@@ -59,26 +58,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Contact: kb1vc@kb1vc.org
  *
  */
-#include "DEMTile.hxx"
 #include "ElevationDB.hxx"
 
 namespace GeoProf {
 
+  class DEMTile;
+  
   class DEM {
   public:      
     /**
      * @brief Load a binary elevation table
      * 
      * @param fname names a binary elevation file. 
-     * @param database the profile will be registered here. 
+     * @param tile_p pointer to a DEM tile object. 
      */
-    DEM(const std::string & fname, ElevationDB<DEMTile> & database);
+    DEM(const std::string & fname, DEMTile * tile_p);
 
     const std::string & getName() const { return file_name; }
     
   private:
-    DEMTile * dem_tile; 
-
     std::string file_name;
     std::string description;
     Point corners[4];
@@ -89,15 +87,16 @@ namespace GeoProf {
     static std::regex float_cleanup_re;
     static std::regex float_convert_re;    
 
+
     void openInstream(const std::string & fname);
 
     void closeInstream();
     
     void readHeader();
 
-    void readProfiles();
+    void readProfiles(DEMTile * tile_p);
 
-    void readSingleProfile(unsigned int xidx);
+    void readSingleProfile(DEMTile * tile_p, unsigned int xidx);
 
     void cleanupFloat(std::string & str) {
       str = std::regex_replace(str, float_cleanup_re, "$1 ");
