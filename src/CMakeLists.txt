@@ -32,12 +32,17 @@ target_link_libraries(PathTest LINK_PUBLIC
   GeoProf TestUtils  
   ${Boost_LIBRARIES})
 
+set(CMAKE_EXE_LINKER_FLAGS 
+  "-static-libgcc -static-libstdc++")
+
 add_executable(DEMTest DEMTest.cxx)
+
 
 target_link_libraries(DEMTest LINK_PUBLIC
   GeoProf TestUtils
   ${Boost_LIBRARIES}
-  ${ZLIB_LIBRARIES}  )
+  ${ZLIB_LIBRARIES})
+
 
 
   
