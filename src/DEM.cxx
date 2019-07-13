@@ -80,7 +80,7 @@ void GeoProf::DEM::readSingleProfile(DEMTile * tile_p, unsigned int xidx)
   int m, n;
   (*instr_p) >> m >> n;
 
-  std::vector<double> & elev = tile_p->getProfile(col);
+  std::vector<short> & elev = tile_p->getProfile(col);
   
   double lon, lat;
   lon = readDouble((*instr_p));

@@ -36,38 +36,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 #include <list>
 
-void scanList(GeoProf::ElevationDB<GeoProf::DEMTile> & edb, std::list<GeoProf::Point> & pt_list) {
-  for(auto & pt : pt_list) {
-    short elev; 
-    if(edb.getElevation(pt, elev)) {
-      std::cerr << boost::format("Point %s : Elevation %d\n")
-	% pt.toString() % elev;
-    }
-    else {
-      std::cout << boost::format("Could not find point %s\n")
-	% pt.toString();
-    }
-  }
-}
-
 int main(int argc, char ** argv)
 {
+  //  std::list<std::string> fname_list;
+  // fname_list.push_back(std::string(argv[1]));
+  // GeoProf::ElevationDB<GeoProf::DEMTile> dbase(fname_list); 
+  std::ifstream file_list_stream(argv[1]);
+  GeoProf::ElevationDB<GeoProf::DEMTile> dbase;
 
-  std::list<GeoProf::Point> pt_list; 
-  pt_list.push_back(GeoProf::Point(45.3, -98.2));
-  pt_list.push_back(GeoProf::Point(45.4, -98.2));
-  pt_list.push_back(GeoProf::Point(45.5, -98.2));  
-  pt_list.push_back(GeoProf::Point(42.48893, -71.8868));
-  pt_list.push_back(GeoProf::Point(42.45, -71.85));
-  pt_list.push_back(GeoProf::Point(42.45, -71.90));  
+  dbase.makeDB(file_list_stream, std::string(argv[2]), std::string("DEM"));
 
-
-  // now create a new dbase from the compressed file.
-  GeoProf::ElevationDB<GeoProf::DEMTile> cdb;
-  std::cerr << "about to restore.\n";
-  cdb.restore(std::string(argv[1]));
-  std::cerr << "restored\n";
-
-  scanList(cdb, pt_list);
+  file_list_stream.close();  
 }
 

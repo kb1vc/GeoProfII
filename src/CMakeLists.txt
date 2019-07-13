@@ -44,5 +44,14 @@ target_link_libraries(DEMTest LINK_PUBLIC
   ${ZLIB_LIBRARIES})
 
 
+add_executable(DEM2dbase DEM2dbase.cxx)
+
+
+target_link_libraries(DEM2dbase LINK_PUBLIC
+  GeoProf TestUtils
+  ${Boost_LIBRARIES}
+  ${ZLIB_LIBRARIES})
+
+
 
   

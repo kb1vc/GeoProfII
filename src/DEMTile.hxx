@@ -69,6 +69,9 @@ namespace GeoProf {
       DEM(fname, this);
     }
 
+    DEMTile() {
+    }
+
     void setParams(const Point & sw, const Point & ne, 
 		   unsigned int _cols) {
       ElevationTile::setParams(sw, ne);
@@ -77,7 +80,7 @@ namespace GeoProf {
       elevation_array.resize(cols);
     }
     
-    std::vector<double> & getProfile(unsigned int col) { 
+    std::vector<short> & getProfile(unsigned int col) { 
       // remember columns are numbered starting with "1"
       return elevation_array[col-1]; 
     }
@@ -90,7 +93,7 @@ namespace GeoProf {
      * @return true if we found the point in this tile. If false,
      * ignore the value of elev
      */
-    bool getElevation(const Point & point, double & elev) const;
+    bool getElevation(const Point & point, short & elev) const;
 
     /**
      * @brief prepare the tile for queries and such. 
@@ -103,25 +106,12 @@ namespace GeoProf {
       }
     }
     
-    void save(std::ostream & os) {
-      // format is
-      // [BoundingBox]
-      // [cols]
-      // [rows][profile] ...
-      cols = elevation_array.size();
-      bbox.save(os); 
-      os.write((char*)&cols, sizeof(cols));
-      for(int i = 0; i < cols; i++) {
-	unsigned int rows = elevation_array[i].size();
-	os.write(reinterpret_cast<const char *>(&elevation_array[i][0]), rows * sizeof(double));
-      }
-    }
+    void save(std::ostream & os);
+    void restore(std::istream & is);
 
-    void restore(std::istream & is) {
-    }
   private:
 
-    std::vector<std::vector< double >> elevation_array;
+    std::vector<std::vector< short >> elevation_array;
 
     unsigned int rows, cols; 
 

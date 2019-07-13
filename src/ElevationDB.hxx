@@ -108,6 +108,38 @@ namespace GeoProf {
     }
 
 
+    /**
+     * @brief create a compressed database from a stream producing a list of filenames
+     */
+    void makeDB(std::istream & lstr, const std::string & sav_name, const std::string & map_typename) {
+      std::cerr << "Writing to [" << sav_name << "]\n";
+      boost::iostreams::filtering_ostream out;
+      out.push(boost::iostreams::gzip_compressor(boost::iostreams::gzip_params(boost::iostreams::gzip::best_compression)));
+      out.push(boost::iostreams::file_descriptor_sink(sav_name)); 
+
+      std::vector<std::string> fnames; 
+      std::string tile_file_name; 
+      while(lstr >> tile_file_name) {
+	fnames.push_back(tile_file_name); 
+      }
+      unsigned int num_tiles = fnames.size();
+      out.write((char*)&num_tiles, sizeof(num_tiles));
+      char typnamebuf[256]; 
+      out.write((char*)&typnamebuf, 256);
+      int count = 0; 
+      for(auto & tfn: fnames) {
+	count++; 
+	std::cerr << boost::format("%d: %-80s\r") % count % tfn;
+	TileClass * tile_p = new TileClass(tfn);
+	
+	tile_p->save(out);
+	
+	delete tile_p; 
+      }
+      std::cerr << "Done\n";
+      boost::iostreams::close(out);
+    }
+    
     
     /**
      * @brief Given a path, lookup each point in the elevation table
@@ -125,9 +157,7 @@ namespace GeoProf {
       tile_p->prepare();
 
       BoundingBox bb = tile_p->getBoundingBox(); 
-      // std::cerr << boost::format("Bounding box SW = %s  NE = %s\n")
-      // 	% bb.getSW().toString() % bb.getNE().toString();
-      
+
       tile_map[bb] = tile_p;
     }
 
@@ -148,18 +178,11 @@ namespace GeoProf {
      * @return true if we found the point on the map. If false,
      * ignore the value of elev
      */
-    double getElevation(const Point & point, double & elev) {
+    bool getElevation(const Point & point, short & elev) {
       TileClass * tile = findTile(point); 
       if(tile == NULL) {
-	// std::cerr << boost::format("Could not find a tile for point %s\n")
-	//   % point.toString();
 	return false; 
       }
-      
-      // std::cerr << boost::format("Found a tile for point %s\n")
-      // 	% point.toString();
-      // std::cerr << boost::format("Tile Bounding box SW = %s  NE = %s\n")
-      // 	% tile->getBoundingBox().getSW().toString() % tile->getBoundingBox().getNE().toString();      
       
       return tile->getElevation(point, elev);
 
@@ -172,9 +195,8 @@ namespace GeoProf {
       out.push(boost::iostreams::file_descriptor_sink(fname)); 
 
       save(out);
-      //      out.close();
 
-      // compressed_ostream.close();
+      boost::iostreams::close(out);
     }
 
     void save(std::ostream & os) {
@@ -185,6 +207,7 @@ namespace GeoProf {
 
       unsigned int sizeof_map = tile_map.size();
       char tile_type_name_buf[256];
+
       os.write((char*)&sizeof_map, sizeof(unsigned int));
       os.write((char*)&tile_type_name_buf, 256); 
 
@@ -192,8 +215,32 @@ namespace GeoProf {
 	tile.second->save(os);
       }
     }
-    
+
+    void restore(const std::string fname) {
+      std::ifstream compressed_istream(fname, std::ios_base::in | std::ios_base::binary);
+      boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;          
+      inbuf.push(boost::iostreams::gzip_decompressor());
+      inbuf.push(compressed_istream);
+
+      std::istream is(&inbuf);
+
+      restore(is); 
+
+      compressed_istream.close();
+    }
+
     void restore(std::istream & is) {
+      unsigned int mapsize; 
+      is.read((char*)&mapsize, sizeof(mapsize));
+      char tile_type_name_buf[256];
+      is.read(tile_type_name_buf, 256);
+
+      
+      for(int i = 0; i < mapsize; i++) {
+	TileClass * tile_p = new TileClass(); 
+	tile_p->restore(is);
+	registerTile(tile_p);
+      }
     }
   private:
     std::map<BoundingBox, TileClass *> tile_map;

@@ -28,7 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "DEMTile.hxx"
 
-bool GeoProf::DEMTile::getElevation(const Point & point, double & elev) const {
+bool GeoProf::DEMTile::getElevation(const Point & point, short & elev) const {
   unsigned int lat_idx, lon_idx;
   double lat_offset, lon_offset;
   
@@ -39,4 +39,39 @@ bool GeoProf::DEMTile::getElevation(const Point & point, double & elev) const {
   }
   
   return false; 
+}
+
+void GeoProf::DEMTile::restore(std::istream & is) {
+  // format is
+  // [cols]  
+  // [BoundingBox]
+  // [rows][profile] ...
+  cols = 0; 
+  is.read((char*)&cols, sizeof(cols));
+
+  bbox.restore(is);      
+  elevation_array.resize(cols);
+
+  for(int i = 0; i < cols; i++) {
+    unsigned int rows;
+    is.read((char*)&rows, sizeof(rows));
+    elevation_array[i].resize(rows);
+    //    elevation_array[i].reserve(rows);
+    is.read((char*) &(elevation_array[i][0]), rows * sizeof(short));
+  }
+}
+
+void GeoProf::DEMTile::save(std::ostream & os) {
+  // format is
+  // [cols]  
+  // [BoundingBox]
+  // [rows][profile] ...
+  cols = elevation_array.size();
+  os.write((char*)&cols, sizeof(cols));
+  bbox.save(os);       
+  for(int i = 0; i < cols; i++) {
+    unsigned int rows = elevation_array[i].size();
+    os.write(reinterpret_cast<const char *>(&rows), sizeof(rows));
+    os.write(reinterpret_cast<const char *>(&elevation_array[i][0]), rows * sizeof(short));
+  }
 }

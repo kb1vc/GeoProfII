@@ -118,6 +118,10 @@ namespace GeoProf {
     }
 
     void restore(std::istream & is) {
+      is.read((char*)&sw_lat, sizeof(sw_lat));
+      is.read((char*)&sw_lon, sizeof(sw_lon));      
+      is.read((char*)&ne_lat, sizeof(sw_lat));
+      is.read((char*)&ne_lon, sizeof(ne_lon));      
     }
     
   private: 
@@ -166,7 +170,7 @@ namespace GeoProf {
      * @return true if we found the point in this tile. If false,
      * ignore the value of elev
      */
-    virtual bool getElevation(const Point & point, double & elev) const = 0;
+    virtual bool getElevation(const Point & point, short & elev) const = 0;
 
     
     const BoundingBox & getBoundingBox() const { return bbox; }
