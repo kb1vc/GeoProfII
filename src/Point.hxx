@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <regex>
 #include <cmath>
+#include <boost/format.hpp>
 
 /**
  * \class GeoProf::Point
@@ -90,19 +91,6 @@ namespace GeoProf {
       grid2Pt(grid);
     }
 
-    /**
-     * @brief Set the elevation of this point. 
-     * 
-     * @param el elevation in meters above mean seal level, referenced to the Clarke 1866 Geode
-     */
-    void setElevation(double el) { elev = el; }
-
-    /**
-     * @brief Return the elevation of this point. 
-     * 
-     * @return elevation in meters above mean seal level, referenced to the Clarke 1866 Geode
-     */
-    double getElevation() const { return elev; }
 
     /**
      * @brief Return degrees latitude (negative is south of the equator)
@@ -117,7 +105,6 @@ namespace GeoProf {
      * @return longitude
      */
     double getLongitude() const { return lon; }
-    
 
     
     /**
@@ -210,7 +197,26 @@ namespace GeoProf {
 				  double & new_bearing, 
 				  double & new_distance) const;
 
-    
+
+    std::string toString() const {
+      char ns = ' ';
+      if (lat > 0.) {
+	ns = 'N';
+      }
+      if (lat < 0.0) {
+	ns = 'S';
+      }
+
+      char ew = ' ';
+      if (lon > 0.0) {
+	ew = 'E';
+      }
+      if (lon < 0.0) {
+	ew = 'W';
+      }
+      
+      return (boost::format("%g %c %g %c") % lat % ns % lon % ew).str();
+    }
   private:
     /// Latitude South is negative, North is positive. 
     double lat;

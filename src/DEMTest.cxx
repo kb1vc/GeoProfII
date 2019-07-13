@@ -44,6 +44,18 @@ int main(int argc, char ** argv)
   GeoProf::DEM dem(fname, dbase);
  
   std::cerr << dem.getName() << std::endl; 
+  
+  GeoProf::Point test_pt(45.3, -98.2);
+  
+  double elev; 
+  if(dbase.getElevation(test_pt, elev)) {
+    std::cout << boost::format("Point %s : Elevation %g\n")
+      % test_pt.toString() % elev;
+  }
+  else {
+    std::cout << boost::format("Could not find point %s\n")
+      % test_pt.toString();
+  }
 	     
 }
 

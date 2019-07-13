@@ -32,7 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <regex>
 #include <cmath>
 #include <vector>
-
+#include <iostream>
+#include <boost/format.hpp>
 #include "Point.hxx"
 
 
@@ -50,6 +51,68 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
 namespace GeoProf {
+  class BoundingBox {
+  public:
+    BoundingBox(const Point & sw, const Point & ne) {
+      setBoundingBox(sw, ne); 
+    }
+
+    // allow key lookup.
+    BoundingBox(const Point & pt) {
+      setBoundingBox(pt, pt); 
+    }
+
+    BoundingBox() {
+      sw_lat = sw_lon = ne_lat = ne_lon = 0.0; 
+    }
+
+    void setBoundingBox(const Point & sw, const Point & ne);
+
+    bool operator<(const BoundingBox & other) const;
+
+    /**
+     * @brief Given a point in a bounding box, and a number of steps in 
+     * each direction, calculate the index into an array of points over the
+     * bounding box, and the offset from the southwest corner. 
+     * 
+     * @param pt the point of interest
+     * @param lat_pts the number of latitude points in a column of the elevation array
+     * @param lon_pts the number of longitude points in a row of the elevation array
+     * @param lat_idx (output) the column index into the two dimensional elevation array
+     *                         such that pt within the smallest cell in the array
+     *                         that contains the point. 
+     * @param lon_idx (output) the row index into the elevation array
+     * @param lat_offset (output) the distance in the latitude dimension from the 
+     *                         southwest corner of the bounding cell
+     * @param lon_offset (output) the distance in the longitude dimension from the 
+     *                         southwest corner of the bounding cell
+     * 
+     * @return true if the point is within the bounding box, false otherwise. 
+     * 
+     */
+    bool getPosition(const Point & pt, unsigned int lat_pts, unsigned int lon_pts, 
+		     unsigned int & lat_idx, unsigned int & lon_idx, 
+		     double & lat_offset, double & lon_offset) const;
+    /**
+     * @brief is the point within this bounding box? 
+     * 
+     * @param pt The whole point of the thing.
+     * @return true if the point is within the bounding box, false otherwise. 
+     */
+    bool isIn(const Point & pt) const;
+
+    Point getSW() const {
+      return Point(sw_lat, sw_lon); 
+    }
+    
+    Point getNE() const {
+      return Point(ne_lat, ne_lon);
+    }
+
+  private: 
+    double sw_lat, sw_lon, ne_lat, ne_lon; 
+  };
+  
   class ElevationTile {
   public:      
     /**
@@ -60,63 +123,26 @@ namespace GeoProf {
      * @param ne the northeast corner of this tile
      */
     ElevationTile(const Point & sw, const Point & ne) {
-      sw_lat = sw.getLatitude();
-      sw_lon = sw.getLongitude();
-      ne_lat = ne.getLatitude();
-      ne_lon = ne.getLongitude();
+      bbox = BoundingBox(sw, ne);
     }
 
     ElevationTile() {
     }
 
     /**
-     * @brief A comparison function 
-     * 
-     * @param a the first tile we're comparing
-     * @param b the other tile we're comparing
-     * 
-     * @return 1 if a is to the east of b (the hell with the dateline)
-     * and 0 if a and b overlap
-     * and -1 if a is to the west of b (the hell with the dateline)
+     * @brief prepare the tile for queries and such. 
      */
-    static int compareLon(const ElevationTile & a, const ElevationTile & b) {
-      if (a.sw_lon > b.ne_lon) return 1;
-      else if (a.ne_lon < b.sw_lon) return -1;       
-      else return 0;
-    }
-
-    /**
-     * @brief A comparison function 
-     * 
-     * @param a the first tile we're comparing
-     * @param b the other tile we're comparing
-     * 
-     * @return 1 if a is to the north of b
-     * and 0 if a and b overlap
-     * and -1 if a is to the south of b
-     */
-    static bool isNorth(const ElevationTile & a, const ElevationTile & b) {
-      if (a.sw_lat > b.ne_lat) return 1;
-      else if (a.ne_lat < b.sw_lat) return -1;       
-      else return 0;
-    }
-
+    virtual void prepare() { }
+    
     /**
      * @brief Is the supplied point inside the region covered by this tile? 
      * 
      * @param loc location to be tested
-     * @return the location of the point relative to this tile
+     * @return true if the point is within this tile
      */
-    enum RelativeLocation { EAST, WEST, NORTH, SOUTH, INSIDE };
-    RelativeLocation isIn(const Point & loc) {
-      double loc_lat = loc.getLatitude();
-      double loc_lon = loc.getLongitude();      
-      if(loc_lat > ne_lat) return NORTH;
-      if(loc_lat < sw_lat) return SOUTH;
-      if(loc_lon > ne_lon) return EAST;
-      if(loc_lon < sw_lon) return WEST;
-      // we must be in the tile.
-      return INSIDE; 
+    bool isIn(const Point & loc) {
+      BoundingBox ptbb(loc); 
+      return !(ptbb < bbox) && !(bbox < ptbb);
     }
 
     /**
@@ -129,6 +155,7 @@ namespace GeoProf {
      */
     virtual bool getElevation(const Point & point, double & elev) const = 0;
 
+    
     /**
      * @brief save this elevation table to a binary stream
      * 
@@ -142,9 +169,11 @@ namespace GeoProf {
      */
     virtual void restore(std::istream & ins) { };
 
-    
+    const BoundingBox & getBoundingBox() const { return bbox; }
+
+
   protected:
-    double sw_lat, sw_lon, ne_lat, ne_lon; 
+    BoundingBox bbox; 
   }; 
 
 }

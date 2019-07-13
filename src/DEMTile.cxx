@@ -29,29 +29,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DEMTile.hxx"
 
 bool GeoProf::DEMTile::getElevation(const Point & point, double & elev) const {
+  unsigned int lat_idx, lon_idx;
+  double lat_offset, lon_offset;
+  
+  if(bbox.getPosition(point, cols, rows, lat_idx, lon_idx, lat_offset, lon_offset)) {
+    // use "at" so that we trigger an exception if this is screwed up. 
+    elev = elevation_array.at(lat_idx).at(lon_idx); 
+    return true; 
+  }
+  
   return false; 
-}
-    
-bool GeoProf::DEMTile::pointToIndex(const Point & point, unsigned int & x, unsigned int & y) {
-  int cols = elevation_array.size();
-  // where are we in the range E to W..
-  double x_offset = point.getLongitude() - sw_lon;
-  double lonrange = ne_lon - sw_lon;
-  // cut it up into columns
-  double d_xidx = (x_offset / lonrange) * ((double) cols);
-  x = (unsigned int) floor(d_xidx);
-
-  if(x >= cols) return false;
-
-  // now find the row
-  std::vector<double> & col_vec = elevation_array[x];
-  int rows = col_vec.size();
-  double y_offset = point.getLatitude() - sw_lat;
-  double latrange = ne_lat - sw_lat;
-  double d_yidx = (y_offset / latrange) * ((double) rows);
-  y = (unsigned int) floor(d_yidx);
-
-  if(y >= rows) return false;
-
-  return true; 
 }

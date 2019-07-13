@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ElevationTile.hxx"
 #include <type_traits>
 #include <utility>
+#include <boost/format.hpp>
 
 /**
  * \class GeoProf::ElevationDB
@@ -58,7 +59,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 namespace GeoProf {
   
-  template<typename TileClass> class ElevationDB {
+  class ElevationDB_Base {
+  public:
+    ElevationDB_Base() {
+    }
+
+    
+  };
+  
+  template<typename TileClass> class ElevationDB : public ElevationDB_Base {
     // Test to ensure TileClass is a subclass of ElevationTile...
     typedef typename std::enable_if<std::is_base_of<ElevationTile, TileClass>::value>::type     TileClass_must_be_derived_from_ElevationTile; 
 
@@ -68,7 +77,6 @@ namespace GeoProf {
      * 
      */
     ElevationDB() {
-      needs_sorting = true; 
     }; 
 
     /**
@@ -82,23 +90,21 @@ namespace GeoProf {
     /** 
      * @brief register a new tile
      */
-    void registerTile(TileClass * tile) {
-      needs_sorting = true; 
-    }
+    void registerTile(TileClass * tile_p) {
+      // do any "cleanup" or preparation that the tile object might need. 
+      tile_p->prepare();
 
-    void sortTiles() {
-      // sort the tiles by corners. 
+      BoundingBox bb = tile_p->getBoundingBox(); 
+      std::cerr << boost::format("Bounding box SW = %s  NE = %s\n")
+	% bb.getSW().toString() % bb.getNE().toString();
+      
+      tile_map[tile_p->getBoundingBox()] = tile_p;
     }
 
     TileClass * findTile(const Point & point) {
-      if(needs_sorting) sortTiles();
+      BoundingBox bb(point);
 
-      // now scan the vector from the middle on out. 
-      int hlat_len = tile_array.size() >> 1;
-      int hlon_len = tile_array[hlat_len].size() >> 1;
-	
-      recursiveFindTile(point, hlat_len / 2, hlon_len / 2, 
-			0, hlat_len - 1, 0, hlon_len - 1); 
+      return (tile_map.find(bb) != tile_map.end()) ? tile_map[bb] : NULL;
     }
 
     /**
@@ -113,58 +119,16 @@ namespace GeoProf {
       TileClass * tile = findTile(point); 
       if(tile == NULL) return false; 
       
+      std::cerr << boost::format("Found a tile for point %s\n")
+	% point.toString();
+      
       return tile->getElevation(point, elev);
 
       return true; 
     }
     
   private:
-    
-    TileClass * recursiveFindTile(const Point & point, 
-				      int lat_idx, int lon_idx,
-				      int lat_idx_lo, int lat_idx_hi, 				      
-				      int lon_idx_lo, int lon_idx_hi) {
-      TileClass * cur_tile = tile_array[lat_idx][lon_idx];
-      ElevationTile::RelativeLocation in_res = cur_tile->isIn(point);
-      int old_lat_idx = lat_idx;
-      int old_lon_idx = lon_idx;       
-      switch(in_res) {
-      case ElevationTile::NORTH:
-	lat_idx_lo = lat_idx; 	
-	lat_idx = (lat_idx_hi + lat_idx_lo) / 2; 
-	break; 
-      case ElevationTile::SOUTH:
-	lat_idx_hi = lat_idx; 	
-	lat_idx = (lat_idx_hi + lat_idx_lo) / 2; 
-	break; 
-      case ElevationTile::EAST: 
-	lon_idx_lo = lon_idx;
-	lon_idx = (lon_idx_hi + lon_idx_lo) / 2; 	
-	break; 
-      case ElevationTile::WEST: 
-	lon_idx_hi = lon_idx;
-	lon_idx = (lon_idx_hi + lon_idx_lo) / 2; 	
-	break; 
-      case ElevationTile::INSIDE:
-	return cur_tile;
-	break;
-      }
-
-      if((lat_idx == old_lat_idx) && (lon_idx == old_lon_idx)) {
-	// we came up empty...
-	return NULL; 
-      }
-      return recursiveFindTile(point, lat_idx, lon_idx, 
-			       lat_idx_lo, lat_idx_hi, 
-			       lon_idx_lo, lon_idx_hi); 
-    }
-
-    // Each entry in this list corresponds to a slice of 
-    std::vector<std::vector<TileClass *>> tile_array;
-    bool needs_sorting; 
-    
-    // remember the last four tiles that we've found
-    std::vector<TileClass *> recent_finds;
+    std::map<BoundingBox, TileClass *> tile_map;
   }; 
 
 }

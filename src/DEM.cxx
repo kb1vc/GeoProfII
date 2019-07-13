@@ -101,9 +101,6 @@ void GeoProf::DEM::readSingleProfile(unsigned int xidx)
 
   elev.resize(m);
   
-  std::cerr << boost::format("row = %d col = %d m = %d n = %d\n")
-    % row % col % m % n;
-
   double dat_el, min_el, max_el; 
   dat_el = readDouble((*instr_p));
   max_el = readDouble((*instr_p));
@@ -111,10 +108,7 @@ void GeoProf::DEM::readSingleProfile(unsigned int xidx)
 
   for(int i = 0; i < m; i++) {
     (*instr_p) >> elev[i];
-    if(i < 10) std::cerr << elev[i] << std::endl; 
   }
-
-  if((m + n) > 10000) exit(-1);
 }
 
 void GeoProf::DEM::readHeader() {

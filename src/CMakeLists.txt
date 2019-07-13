@@ -3,6 +3,7 @@ set(GeoProf_SRCS
   Path.cxx
   DEM.cxx
   DEMTile.cxx
+  ElevationTile.cxx
   )
 
 set(PointTest_SRCS

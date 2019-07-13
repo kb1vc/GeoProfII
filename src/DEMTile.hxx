@@ -63,8 +63,11 @@ namespace GeoProf {
      * @brief Initialize the tables
      * 
      */
-    DEMTile(const Point & sw, const Point & ne, int cols) : ElevationTile(sw, ne) {
+    DEMTile(const Point & sw, const Point & ne, 
+	    unsigned int _cols) : ElevationTile(sw, ne) {
       // build the first dimension of the elevation table.
+      rows = 0; 
+      cols = _cols; 
       elevation_array.resize(cols);      
     }
 
@@ -77,15 +80,28 @@ namespace GeoProf {
      * @brief Given a point, find it in this tile and return the elevation
      * 
      * @param point where are we looking? 
-o     * @param elev (output) the point's elevation. 
+     * @param elev (output) the point's elevation. 
      * @return true if we found the point in this tile. If false,
      * ignore the value of elev
      */
     bool getElevation(const Point & point, double & elev) const;
+
+    /**
+     * @brief prepare the tile for queries and such. 
+     */
+    void prepare() {
+      rows = 0; 
+      for(auto & prof : elevation_array) {
+	unsigned int sz = prof.size();
+	rows = (rows < sz) ? sz : rows; 
+      }
+    }
     
   private:
 
     std::vector<std::vector< double >> elevation_array;
+
+    unsigned int rows, cols; 
 
     bool pointToIndex(const Point & point, unsigned int & x, unsigned int & y); 
   }; 
