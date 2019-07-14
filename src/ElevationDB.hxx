@@ -105,6 +105,8 @@ namespace GeoProf {
      */
     void scanPath(Path & path, std::vector<short> & elevations);
 
+    virtual void deleteTile(ElevationTile * tile_p) = 0;
+    
     void restore(const std::string & fname);
 
     void restore(std::istream & is);
@@ -171,6 +173,10 @@ namespace GeoProf {
 
     ElevationTile * makeTile() {
       return new TileClass();
+    }
+
+    void deleteTile(ElevationTile * tile_p) {
+      delete dynamic_cast<TileClass*>(tile_p);
     }
 
   private:

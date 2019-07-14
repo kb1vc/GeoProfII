@@ -53,7 +53,7 @@ void GeoProf::ElevationDB_Base::makeDB(std::istream & lstr, const std::string & 
 	
     tile_p->save(out);
 	
-    delete tile_p; 
+    deleteTile(tile_p);
   }
 
   boost::iostreams::close(out);
