@@ -112,7 +112,6 @@ namespace GeoProf {
      * @brief create a compressed database from a stream producing a list of filenames
      */
     void makeDB(std::istream & lstr, const std::string & sav_name, const std::string & map_typename) {
-      std::cerr << "Writing to [" << sav_name << "]\n";
       boost::iostreams::filtering_ostream out;
       out.push(boost::iostreams::gzip_compressor(boost::iostreams::gzip_params(boost::iostreams::gzip::best_compression)));
       out.push(boost::iostreams::file_descriptor_sink(sav_name)); 
@@ -122,21 +121,23 @@ namespace GeoProf {
       while(lstr >> tile_file_name) {
 	fnames.push_back(tile_file_name); 
       }
+
       unsigned int num_tiles = fnames.size();
       out.write((char*)&num_tiles, sizeof(num_tiles));
+
       char typnamebuf[256]; 
       out.write((char*)&typnamebuf, 256);
+
       int count = 0; 
       for(auto & tfn: fnames) {
 	count++; 
-	std::cerr << boost::format("%d: %-80s\r") % count % tfn;
 	TileClass * tile_p = new TileClass(tfn);
 	
 	tile_p->save(out);
 	
 	delete tile_p; 
       }
-      std::cerr << "Done\n";
+
       boost::iostreams::close(out);
     }
     
@@ -146,8 +147,20 @@ namespace GeoProf {
      * and update its elevation member. 
      * 
      * @param path sequence of points from start to finish
+     * @param elevations (output) vector of elevations, one element per point in the path
      */
-    void scanPath(Path & path); 
+    void scanPath(Path & path, std::vector<short> & elevations) {
+      elevations.clear();
+      for(auto pt: path) {
+	short elev;
+	if(getElevation(pt, elev)) {
+	  elevations.push_back(elev);	  
+	}
+	else {
+	  elevations.push_back(0);
+	}
+      }
+    }
 
     /** 
      * @brief register a new tile
@@ -185,6 +198,33 @@ namespace GeoProf {
       }
       
       return tile->getElevation(point, elev);
+
+      return true; 
+    }
+
+    bool findHighPoint(const Point & point, Point & high_point, 
+		       double radius = 0.5, double step = 0.1) {
+      short max_el;
+      high_point = point; 
+      if(!getElevation(point, max_el)) return false; 
+      short was_el = max_el;
+
+      // now look everwhere in a 500 meter radius of this point.
+      std::vector<short> elevs;
+      for(double ang = 0.0; ang < 360.0; ang += 5.0) {
+	Point next; 
+	point.stepTo(ang, radius, next); 
+	GeoProf::Path path(point, next, step);
+	scanPath(path, elevs);
+	int i = 0; 
+	for(auto el: elevs) {
+	  if(el > max_el) {
+	    high_point = next; 
+	    max_el = el; 
+	  }
+	  i++; 
+	}
+      }
 
       return true; 
     }

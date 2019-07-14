@@ -113,7 +113,7 @@ void GeoProf::DEM::readHeader() {
   extractVector(buf, 547, 738, quadvec, 8);
   // convert to points
   for(int i = 0; i < 4; i++) {
-    corners[i] = Point(quadvec[i * 2 + 1] / 3600.0, quadvec[i * 2] / 3600.0, 0.0);
+    corners[i] = Point(quadvec[i * 2 + 1] / 3600.0, quadvec[i * 2] / 3600.0);
   }
   std::vector<double> resolutionvec;
   extractVector(buf, 817, 852, resolutionvec, 3);

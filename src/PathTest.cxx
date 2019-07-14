@@ -34,25 +34,42 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <cmath>
 #include <random>
-
+#include "DEMTile.hxx"
+#include "ElevationDB.hxx"
 
 
 int main(int argc, char ** argv)
 {
-  std::string from_grid = generateRandomGrid();
-  std::string to_grid = generateOtherGrid(from_grid);
-
-  from_grid = std::string("IM00aa");
-  to_grid = std::string("JN99xx");
+  std::string from_grid("FN42bl");
+  std::string to_grid("FN44ig");
 
   std::cerr << boost::format("From %s To %s\n") % from_grid % to_grid;
   GeoProf::Point from_pt(from_grid);
   GeoProf::Point to_pt(to_grid);
 
-  GeoProf::Path path(from_pt, to_pt, 1.0);
+  
+  // now create a new dbase from the compressed file.
+  GeoProf::ElevationDB<GeoProf::DEMTile> cdb;
+  std::cerr << "about to restore.\n";
+  cdb.restore(std::string(argv[1]));
+  std::cerr << "restored\n";
 
+  // find the high point
+  GeoProf::Point new_frm, new_to;
+  cdb.findHighPoint(from_pt, new_frm);
+  cdb.findHighPoint(to_pt, new_to);  
+  
+  GeoProf::Path path(new_frm, new_to, 0.020);
+  
+  std::vector<short> elevations; 
+  
+  cdb.scanPath(path, elevations); 
+
+  int i = 0;
   for(auto p: path) {
-    std::cerr << boost::format("%f %f\n") % p.getLatitude() % p.getLongitude();
+    std::cout << boost::format("%f %f %d\n") 
+      % p.getLatitude() % p.getLongitude() % elevations[i];
+    i++;
   }
 }
 

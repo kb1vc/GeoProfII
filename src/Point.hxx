@@ -52,22 +52,19 @@ namespace GeoProf {
   class Point {
   public:      
     /**
-     * @brief Create a point object from latitude, longitude, and elevation. 
+     * @brief Create a point object from latitude, and longitude
      * 
      * @param _lat the latitude of the point -- negative values are south of the equator
      * @param _lon the longitude of the point -- negative values are west of Grenwich
-     * @param _elev (optional) the altitude of the point above mean-sea-level referenced to the Clarke 1866 Geode
-
      * 
      * Note that bearings between the poles are unlikely to make sense.
      * In places where every direction is "south" or "north" the math
      * is often beyond sensible limits.  If your application requires
      * pole-to-pole paths, then look elsewhere, or just point south.
      */
-    Point(double _lat = 0.0, double _lon = 0.0, double _elev = 0.0) {
+    Point(double _lat = 0.0, double _lon = 0.0) {
       lat = _lat;
       lon = _lon;
-      elev = _elev; 
     }
 
     /**
@@ -78,7 +75,6 @@ namespace GeoProf {
     Point(const Point & orig) {
       lat = orig.lat;
       lon = orig.lon;
-      elev = orig.elev; 
     }
 
     /**
@@ -224,8 +220,6 @@ namespace GeoProf {
     /// Longitude West is negative, East is positive. 
     double lon;
 
-    /// Elevation referenced to Clark '88 Geode in meters. 
-    double elev; 
     static std::regex grid_regexp; //  ("[A-R][A-R][0-9][0-9][A-X][A-X]", std::regex_constants::icase);      
     
     /**

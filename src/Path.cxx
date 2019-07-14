@@ -36,18 +36,20 @@
 #include <limits>
 
 namespace GeoProf {
-  void Path::createPath(Point & from, Point & to, double step) {
+  void Path::createPath(const Point & from, const Point & to, double step) {
     if(this->size() > 0) this->clear();
 
     // now estimate the total run.
     double bearing, dmy, distance; 
     from.bearingDistanceTo(to, bearing, dmy, distance);
 
-    from.correctBearingDistanceTo(to, bearing, distance, bearing, distance);
-    
+    if(distance > 20.0) {
+      from.correctBearingDistanceTo(to, bearing, distance, bearing, distance);
+    }
+
     // size this vector to be pretty close to what we need.
     unsigned long len = static_cast<unsigned long>(100 + distance / step);
-    
+
     // allocate enough space to get us most of the way there. 
     this->reserve(len); 
 
@@ -60,11 +62,6 @@ namespace GeoProf {
     Point current = from; 
     Point next;    
     int count = 0; 
-    std::cerr << boost::format("From: [%f %f]  To: [%f %f] Bearing %f Distance %f\n")
-      % from.getLatitude() % from.getLongitude()
-      % to.getLatitude() % to.getLongitude()
-      % bearing
-      % distance;
     
     for(double path_len = step; path_len < distance; path_len += step) {
       from.stepTo(bearing, path_len, next); 

@@ -131,17 +131,11 @@ namespace GeoProf {
   class ElevationTile : public SaveRestoreObj {
   public:      
     /**
-     * @brief Specify the region for this elevation tile. 
-     * The derived class is responsible for all other initialization
-     *
-     * @param sw the southwest corner of this tile
-     * @param ne the northeast corner of this tile
+     * @brief empty constructor -- useful for later calls to restore. 
      */
     ElevationTile() {
     }
 
-    ElevationTile(const std::string & fname, bool restore_binary = false) { }
-    
     void setParams(const Point & sw, const Point & ne) {
       bbox = BoundingBox(sw, ne);
     }

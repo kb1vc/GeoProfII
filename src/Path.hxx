@@ -63,7 +63,7 @@ namespace GeoProf {
      * @param to the ending point
      * @param step the distance between each point in the path. 
      */
-    Path(Point & from, Point & to, double step) {
+    Path(const Point & from, const Point & to, double step) {
       createPath(from, to, step); 
     }
 
@@ -75,7 +75,7 @@ namespace GeoProf {
      * @param to the ending point
      * @param step the distance between each point in the path. 
      */
-    void createPath(Point & from, Point & to, double step);
+    void createPath(const Point & from, const Point & to, double step);
   }; 
 
 }
