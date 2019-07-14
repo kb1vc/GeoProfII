@@ -4,6 +4,7 @@ set(GeoProf_SRCS
   DEM.cxx
   DEMTile.cxx
   ElevationTile.cxx
+  ElevationDB.cxx
   )
 
 set(PointTest_SRCS
