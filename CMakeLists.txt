@@ -13,8 +13,8 @@ ENDIF()
 
 PROJECT(GeoProfII)
 
-SET(GeoProfII_VERSION_MAJOR 6)
-SET(GeoProfII_VERSION_MINOR 6)
+SET(GeoProfII_VERSION_MAJOR 0)
+SET(GeoProfII_VERSION_MINOR 1)
 SET(GeoProfII_VERSION_PATCH 0)
 SET(GeoProfII_VERSION "${GeoProfII_VERSION_MAJOR}.${GeoProfII_VERSION_MINOR}.${GeoProfII_VERSION_PATCH}")
 
@@ -119,32 +119,10 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
 FIND_PACKAGE(Boost 1.45 REQUIRED COMPONENTS program_options date_time system filesystem QUIET)
 
-
-IF(CMAKE_VERSION VERSION_GREATER 3.0.0)
-  ### new GUI is qt5 based -- but we don't want to fiddle with it
-  ### unless the cmake version is at 3+
-  FIND_PACKAGE(Qt5Widgets )
-  IF(Qt5Widgets_FOUND)
-    FIND_PACKAGE(Qt5Core REQUIRED )
-    FIND_PACKAGE(Qt5Network REQUIRED )
-    FIND_PACKAGE(Qt5PrintSupport REQUIRED )
-    FIND_PACKAGE(Qt5Multimedia REQUIRED )                    
-    FIND_PACKAGE(Qwt REQUIRED)    
-    IF(Qt5Widgets_VERSION VERSION_LESS 5.7.0)
-      MESSAGE(FATAL_ERROR "Minimum supported Qt5 version is 5.7")
-    ENDIF()
-  ELSE()
-    MESSAGE(FATAL_ERROR "The Qt5Widgets library is required to build GeoProfII")
-  ENDIF()
-ENDIF()
-
-## Need hamlib for just the include files to get hamlib codes for
-## modulation scheme and other settings.
 find_package(PkgConfig)
 
 # This is the radio interface... 
 ADD_SUBDIRECTORY(src)
-
 
 FIND_PACKAGE(Doxygen QUIET)
 
