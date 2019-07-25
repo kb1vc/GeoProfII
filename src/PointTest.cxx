@@ -33,26 +33,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <cmath>
 
+// return true on failed test.
 bool testBearingDist(unsigned int c) {
   // generate two grids.
   std::string from_grid = generateRandomGrid();
   std::string to_grid = generateOtherGrid(from_grid);
 
+  // If we ever need a juicy test case -- 
+  // from_grid = "PQ43jl";
+  // to_grid = "PH43jl";
+  
   // create the two points
   GeoProf::Point from_pt(from_grid);
   GeoProf::Point to_pt(to_grid);
   
   // make the forward and reverse bearing
   double bearing, rev_bearing, distance; 
-  
+
   // give the bearing along the line from_pt to to_pt. 
   from_pt.bearingDistanceTo(to_pt, bearing, rev_bearing, distance);
-
+  
+  // if the distance is less than 2km -- just return success
+  if(distance < 2.0) return false;
+  
   // correct the bearings
-  from_pt.correctBearingDistanceTo(to_pt, bearing, distance, bearing, distance); 
+  from_pt.correctBearingDistanceTo(to_pt, bearing, distance, bearing, distance);
+
   double nd; 
   to_pt.correctBearingDistanceTo(from_pt, rev_bearing, distance, rev_bearing, nd);
-  
+
   // now find the point at the other end by traveling that distance along the bearing.
   GeoProf::Point nto_pt;
   from_pt.stepTo(bearing, distance, nto_pt);
@@ -78,7 +87,7 @@ bool testBearingDist(unsigned int c) {
     nfrom_pt.pt2Grid(nfrom_gr);
     std::cerr << boost::format("%8d: f: %s  nfrom: %s (dist %f) t: %s nto: %s (dist %f) path length %f bearing %f\n")
       % c % from_grid % nfrom_gr % from_distance % to_grid % nto_gr % to_distance % distance % bearing;
-    
+
     std::cerr << boost::format("\tf: [%f %f] nfrom: [%f %f]\n")
       % from_pt.getLatitude() % from_pt.getLongitude()
       % nfrom_pt.getLatitude() % nfrom_pt.getLongitude();
@@ -88,6 +97,11 @@ bool testBearingDist(unsigned int c) {
     ret = true;    
   }
 
+  if(ret) {
+    std::cerr << boost::format("Failed path test From %s to %s\n") % from_grid % to_grid;
+  }
+  
+  
   return ret; 
 }
 

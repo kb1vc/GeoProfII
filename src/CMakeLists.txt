@@ -16,7 +16,7 @@ set(PathTest_SRCS
 
 find_package(ZLIB REQUIRED)
 find_package(Boost COMPONENTS  iostreams filesystem)
-include_directories( ${ZLIB_INCLUDE_DIRS} )
+include_directories( ${ZLIB_INCLUDE_DIRS} ${Boost_INCLUDE_DIR} )
 
 add_library(GeoProf ${GeoProf_SRCS})
 add_library(TestUtils TestUtils.cxx)

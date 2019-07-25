@@ -27,7 +27,10 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "Point.hxx"
-#define __NO_MATH_INLINES
+#ifndef __NO_MATH_INLINES
+#define __NO_MATH_INLINES 1
+#endif
+
 #include <boost/format.hpp>
 #include <regex>
 #include <stdexcept>
@@ -83,7 +86,6 @@ namespace GeoProf {
       distance = 0.0;
       return;
     }
-
     BOA = clarke_66_bl / clarke_66_al;
     F = 1.0 - BOA;
     P1R = this->lat * rad_per_deg;
@@ -106,7 +108,16 @@ namespace GeoProf {
     CD = 1.0 - 2.0 * L;
     DL = acos(CD);
     SD = sin(DL);
-    T = DL / SD;
+    
+    // Believe it or not, sometimes CD is 1.0 (when L, for instance, is 0)
+    // All this NAN stuff is pretty hazardous. Make sure 0/0 is really
+    // lim x -> 0  x/x = 1.
+    if(fabs(DL - SD) < 1e-25) {
+      T = 1.0;    
+    }
+    else {
+      T = DL / SD;      
+    }
     U = 2.0 * KL * KL / (1.0 - L);
     V = 2.0 * KK * KK / L;
     D = 4.0 * T * T;
@@ -129,7 +140,6 @@ namespace GeoProf {
 
     TDLPM = tan(tanarg);
 
-
     HAPBR = atan2Pt(SDTM, CTM * TDLPM); 
     HAMBR = atan2Pt(CDTM, STM * TDLPM); 
 
@@ -144,11 +154,10 @@ namespace GeoProf {
        fix a disagreement in the semantics of 
        the original implementation of ATAN2, vs
        the implementation from the gnu c math rtl. */
-    bearing = (A1M2 == 0.0) ? 0.0 : (360.0d - (A1M2 / rad_per_deg));
-    reverse_bearing = (A2M1 == 0.0) ? 0.0 : (360.0d - (A2M1 / rad_per_deg));
-    
-    if((bearing - 360.0d) >= 0.0) bearing -= 360.0;
-    if((reverse_bearing - 360.0d) >= 0.0) reverse_bearing -= 360.0;
+    bearing = (A1M2 == 0.0) ? 0.0 : (360.0 - (A1M2 / rad_per_deg));
+    reverse_bearing = (A2M1 == 0.0) ? 0.0 : (360.0 - (A2M1 / rad_per_deg));
+    if((bearing - 360.0) >= 0.0) bearing -= 360.0;
+    if((reverse_bearing - 360.0) >= 0.0) reverse_bearing -= 360.0;
   }
 
   bool Point::recCorrectBearingDistanceTo(const Point & other, 
@@ -178,7 +187,6 @@ namespace GeoProf {
 	// now go to the remote point
 	Point next; 
 	stepTo(az, rng, next); 
-
 	// and calculate the distance between that and "other"
 	double d_err = other.distanceTo(next);
 	if(d_err < err_dist) {
@@ -189,12 +197,11 @@ namespace GeoProf {
 	  ret = true; 
 	}
 	if(d_err > last_err) break; // we're getting worse. 
-	last_err = d_err; 
+	last_err = d_err;
       }
       // if we didn't improve on the last azimuth, bail out
-      if(!got_better) break; 
+      if(!got_better) break;
     }
-
     return (err_dist < 0.01); // if we're within 10m, let's quit.
   }
     
@@ -238,8 +245,8 @@ namespace GeoProf {
     /* System generated locals */
     double d1;
 
-    bool debug = ((bearing < 180.00001d) && (bearing > 179.99999d)) || 
-      (bearing < 0.00001d) || (bearing > 359.99999d);
+    bool debug = ((bearing < 180.00001) && (bearing > 179.99999)) || 
+      (bearing < 0.00001) || (bearing > 359.99999);
 
     /* Local variables */
     double c, d, e, r, x, y, cf, sa, cu, sf, cy, cz, su, tu, 
